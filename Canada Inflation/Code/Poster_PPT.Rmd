@@ -1,0 +1,271 @@
+---
+title: "Poster Presentation"
+output: html_document
+date: "2024-05-21"
+---
+# Inflation Train Test Dataset
+
+```{r }
+library(ggplot2)
+library(dplyr)
+
+library(ggplot2)
+library(dplyr)
+
+# Assuming `can_inf_data` is your actual data frame with 'Date' and 'cpi' columns
+
+# Convert the Date column to Date format if it isn't already
+can_inf_data <- can_inf_data %>%
+  mutate(Date = as.Date(Date))
+
+# Define the split date
+split_date <- as.Date("2016-12-01")
+
+# Determine the range for the y-axis
+y_min <- floor(min(can_inf_data$cpi, na.rm = TRUE) / 2) * 2
+y_max <- ceiling(max(can_inf_data$cpi, na.rm = TRUE) / 2) * 2
+
+p <- ggplot(can_inf_data, aes(x = Date, y = cpi)) +
+  geom_line(aes(color = ifelse(Date <= split_date, "Training Data", "Test Data")), size = 0.7, show.legend = FALSE) + # Adjust the size here
+  labs(y = "Inflation Rate",
+       x = "Year") +
+  theme_minimal() +
+  theme(legend.position = "none")+
+  theme(
+    plot.background = element_rect(fill = "#e2f3f9", color = NA),
+    panel.background = element_rect(fill = "#e2f3f9", color = NA),
+    axis.text.x = element_text(color = "black", face = "bold", size = 16),
+    axis.text.y = element_text(color = "black", face = "bold", size = 16),
+    axis.title.x = element_text(color = "black", face = "bold", size = 16),
+    axis.title.y = element_text(color = "black", face = "bold", size = 16),
+    plot.title = element_text(color = "black", face = "bold", size = 16),
+    plot.subtitle = element_text(color = "black"),
+    axis.line = element_line(color = "black"),
+    panel.grid.major = element_line(color = "gray", linetype = "dashed"),
+    panel.grid.minor = element_blank(),  # Remove minor gridlines
+    axis.ticks = element_line(color = "black", lineend = "round")  # Add ticks/dots at the axis line
+  )+
+  theme(plot.background = element_rect(fill = "#e2f3f9")) +
+  geom_vline(xintercept = as.numeric(split_date), linetype = "dashed", color = "red", size = 1.5) +
+  annotate("text", x = split_date, y = max(can_inf_data$cpi, na.rm = TRUE) * 0.8, label = "Train/Test Split", vjust = -1, color = "#043c54", angle = 90, size = 5, fontface = "bold") +
+  scale_x_date(date_breaks = "5 years", date_labels = "%Y", limits = c(as.Date("1972-01-01"), as.Date("2023-08-01"))) +
+  scale_y_continuous(breaks = seq(y_min, y_max, by = 2)) +
+  scale_color_manual(values = c("Training Data" = "black", "Test Data" = "black"))
+
+# Save the plot as an image file
+ggsave("Inflation_train_test.png", plot = p, width = 10, height = 6, dpi = 300)
+
+getwd()
+```
+
+# Result of Combined
+```{r}
+R <- 50000
+
+# HORIZON 12
+# Combine all forecasts into a list
+forecasts <- list(dyn_forecasts$`12`, rf_forecasts$`12`, nnar_forecasts$`12`)
+
+# Provided actual demand values for horizon 12
+actual_values <- true_values$`12`
+
+# Determine optimal weights
+optimal_weights_h12 <- determine_optimal_weights(forecasts, actual_values, L, R)
+
+# Print the optimal weights
+print("Optimal Weights:")
+print(round(optimal_weights, 6))
+
+# Compute the combined forecast using optimal weights
+combined_forecasts_ddwa_h12 <- compute_ddwma_forecast(optimal_weights, forecasts)
+
+# Compute FESS
+fess <- compute_fess(actual_values, combined_forecasts_ddwa_h12)
+
+# Print FESS
+print("FESS:")
+print(fess)
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_forecasts_ddwa_h12 <- accuracy(combined_forecasts_ddwa_h12, true_values$`12`)
+
+# Compute accuracy of individual models for horizon 12
+accuracy_arima_h12 <- accuracy(arima_forecasts$`12`, true_values$`12`)
+accuracy_dyn_h12 <- accuracy(dyn_forecasts$`12`, true_values$`12`)
+accuracy_nnar_h12 <- accuracy(nnar_forecasts$`12`, true_values$`12`)
+accuracy_nnarx_h12 <- accuracy(nnarx_forecasts$`12`, true_values$`12`)
+accuracy_rf_h12 <- accuracy(rf_forecasts$`12`, true_values$`12`)
+accuracy_xgb_h12 <- accuracy(xgb_forecasts$`12`, true_values$`12`)
+
+# Create a data frame with accuracy metrics
+accuracy_table <- data.frame(
+  Model = c("ARIMA", "Dyn", "NNAR", "NNARX", "RF", "XGBoost", "Combined"),
+  RMSE = c(accuracy_arima_h12[2], accuracy_dyn_h12[2], accuracy_nnar_h12[2],
+           accuracy_nnarx_h12[2], accuracy_rf_h12[2], accuracy_xgb_h12[2], accuracy_combined_forecasts_ddwa_h12[2]),
+  MAE = c(accuracy_arima_h12[3], accuracy_dyn_h12[3], accuracy_nnar_h12[3],
+          accuracy_nnarx_h12[3], accuracy_rf_h12[3], accuracy_xgb_h12[3], accuracy_combined_forecasts_ddwa_h12[3]),
+  MAPE = c(accuracy_arima_h12[5], accuracy_dyn_h12[5], accuracy_nnar_h12[5],
+           accuracy_nnarx_h12[5], accuracy_rf_h12[5], accuracy_xgb_h12[5], accuracy_combined_forecasts_ddwa_h12[5])
+)
+
+# Print the accuracy table
+print(accuracy_table)
+
+# Create a data frame with actual values and combined forecasts for h=12
+data_h12 <- data.frame(Actual = true_values$`12`, NNAR_Forecast = nnar_forecasts$`12`, Dyn_Forecast = dyn_forecasts$`12`, RF_Forecast = rf_forecasts$`12`, Combined_Forecast = combined_forecasts_ddwa_h12)
+
+# Plot the actual values and combined forecasts for h=12
+ddwa12 <- ggplot(data_h12, aes(x = seq_along(Actual))) +
+  geom_line(aes(y = Actual, color = "Actual"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = Combined_Forecast, color = "Combined"), linetype = "solid", size = 1.7) +
+  geom_line(aes(y = NNAR_Forecast, color = "NNAR"), linetype = "dashed", size = 1.2) +
+  geom_line(aes(y = Dyn_Forecast, color = "Dynamic"), linetype = "dashed", size = 1.2) +
+  geom_line(aes(y = RF_Forecast, color = "RF"), linetype = "dashed", size = 1.2) +
+  labs(x = "Time", y = "Value", title = "Combined Model vs Actual Values (h=12)") +
+  scale_x_continuous(breaks = seq(1, length(true_values$`12`), by = 5)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_color_manual(values = c("black", "red", "magenta", "blue", "green"),
+                     name = "Model",
+                     breaks = c("Actual", "Combined", "NNAR", "Dynamic", "RF"),
+                     labels = c("Actual", "Combined", "NNAR", "Dynamic", "RF")) +
+  theme_minimal() +
+  theme(legend.position = "right") +
+  theme(plot.background = element_rect(fill = "#e7f3f4"))
+
+# Save the plot as an image file
+ggsave("Inflation_train_test.png", plot = ddwa12, width = 10, height = 6, dpi = 300)
+```
+
+# All variables together in one graph
+
+```{r}
+# Convert Date column to POSIXct class
+can_inf_data$Date <- as.POSIXct(can_inf_data$Date)
+
+# Convert Date column to POSIXct class
+can_inf_data$Date <- as.POSIXct(can_inf_data$Date)
+
+# Define colors for each variable
+colors <- c("Inflation Rate" = "black", "Interest Rate" = "green", "Money Supply" = "red", 
+            "Exchange Rate" = "blue", "Unemployment Rate" = "orange", "Oil Price" = "purple", 
+            "BCPI" = "magenta")
+
+# Plot all variables and inflation data with manual line colors and size
+all_v <- ggplot(can_inf_data, aes(x = Date)) +
+  geom_line(aes(y = cpi, color = "Inflation Rate"), size = 0.6) +
+  geom_line(aes(y = interest_rate, color = "Interest Rate"), size = 0.6) +
+  geom_line(aes(y = money_supply, color = "Money Supply"), size = 0.6) +
+  geom_line(aes(y = exchange_rate, color = "Exchange Rate"), size = 0.6) +
+  geom_line(aes(y = unemp_rate, color = "Unemployment Rate"), size = 0.6) +
+  geom_line(aes(y = oil_price, color = "Oil Price"), size = 0.6) +
+  geom_line(aes(y = bcpi, color = "BCPI"), size = 0.6) +
+  labs(y = "Value", x= "Year",
+       color = "Variables") +
+  scale_color_manual(values = colors) +
+  scale_x_datetime(date_breaks = "5 year", date_labels = "%Y") +
+  theme_minimal() +
+  theme(legend.position = "bottom")+
+  theme(
+    plot.background = element_rect(fill = "#e2f3f9", color = NA),
+    panel.background = element_rect(fill = "#e2f3f9", color = NA),
+    axis.text.x = element_text(color = "black", face = "bold", size = 16),
+    axis.text.y = element_text(color = "black", face = "bold", size = 16),
+    axis.title.x = element_text(color = "black", face = "bold", size = 16),
+    axis.title.y = element_text(color = "black", face = "bold", size = 16),
+    plot.title = element_text(color = "black", face = "bold", size = 16),
+    plot.subtitle = element_text(color = "black"),
+    axis.line = element_line(color = "black"),
+    panel.grid.major = element_line(color = "gray", linetype = "dashed"),
+    panel.grid.minor = element_blank(),  # Remove minor gridlines
+    axis.ticks = element_line(color = "black", lineend = "round")  # Add ticks/dots at the axis line
+  )+
+  theme(plot.background = element_rect(fill = "#e2f3f9"))
+
+# Save the plot as an image file
+ggsave("all_variable.png", plot = all_v, width = 10, height = 6, dpi = 300)
+
+```
+
+```{r}
+# Convert Date column to POSIXct class
+inf$Date <- as.POSIXct(inf$Date)
+
+# Convert Date column to POSIXct class
+can_inf_data$Date <- as.POSIXct(can_inf_data$Date)
+
+# Define colors for each variable
+colors <- c("Inflation Rate" = "black", "Interest Rate" = "green", "Money Supply" = "red", 
+            "Exchange Rate" = "blue", "Unemployment Rate" = "orange", "Oil Price" = "purple", 
+            "BCPI" = "magenta")
+
+# Plot all variables and inflation data with manual line colors and size
+all_v_scale <- ggplot(inf, aes(x = Date)) +
+  geom_line(aes(y = cpi, color = "Inflation Rate"), size = 0.6) +
+  geom_line(aes(y = interest_rate, color = "Interest Rate"), size = 0.6) +
+  geom_line(aes(y = money_supply, color = "Money Supply"), size = 0.6) +
+  geom_line(aes(y = exchange_rate, color = "Exchange Rate"), size = 0.6) +
+  geom_line(aes(y = unemp_rate, color = "Unemployment Rate"), size = 0.6) +
+  geom_line(aes(y = oil_price, color = "Oil Price"), size = 0.6) +
+  geom_line(aes(y = bcpi, color = "BCPI"), size = 0.6) +
+  labs(y = "Inflation Rate",
+       color = "Variables") +
+  scale_color_manual(values = colors) +
+  scale_x_datetime(date_breaks = "5 year", date_labels = "%Y") +
+  theme_minimal() +
+  theme(
+    plot.background = element_rect(fill = "#e2f3f9", color = NA),
+    panel.grid = element_blank(),
+    axis.title.x = element_text(color = "#043c54", face = "bold", size = 14),
+    axis.title.y = element_text(color = "#043c54", face = "bold", size = 14),
+    axis.text.x = element_text(color = "#043c54", size = 14),
+    axis.text.y = element_text(color = "#043c54", size = 14),
+    axis.line = element_line(color = "#043c54", size = 1, linetype = "solid"),
+    legend.position = "bottom",
+    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 12),
+    legend.background = element_rect(fill = "#e2f3f9", color = NA),
+    legend.key = element_rect(fill = "#e2f3f9", color = NA)
+  )
+
+# Save the plot as an image file
+ggsave("all_variable_scale.png", plot = all_v_scale, width = 10, height = 6, dpi = 300)
+
+```
+# Result# All horizon Forecast of proposed model on the basis of RMSE
+```{r}
+# Combine RMSE values for all models and horizons
+combined_rmse <- data.frame(
+  Model = c("ARIMA", "Dyn", "NNAR", "NNARX", "RF", "XGBoost", "Combined"),
+  H1_RMSE = round(c(accuracy_arima_h1[2], accuracy_dyn_h1[2], accuracy_nnar_h1[2],
+                    accuracy_nnarx_h1[2], accuracy_rf_h1[2], accuracy_xgb_h1[2], accuracy_combined_forecasts_ddwa_h1[2]), 3),
+  H3_RMSE = round(c(accuracy_arima_h3[2], accuracy_dyn_h3[2], accuracy_nnar_h3[2],
+                    accuracy_nnarx_h3[2], accuracy_rf_h3[2], accuracy_xgb_h3[2], accuracy_combined_forecasts_ddwa_h3[2]), 3),
+  H6_RMSE = round(c(accuracy_arima_h6[2], accuracy_dyn_h6[2], accuracy_nnar_h6[2], accuracy_nnarx_h6[2],
+                    accuracy_rf_h6[2], accuracy_xgb_h6[2], accuracy_combined_forecasts_ddwa_h6[2]), 3),
+  H12_RMSE = round(c(accuracy_arima_h12[2], accuracy_dyn_h12[2], accuracy_nnar_h12[2],
+                     accuracy_nnarx_h12[2], accuracy_rf_h12[2], accuracy_xgb_h12[2], accuracy_combined_forecasts_ddwa_h12[2]), 3)
+)
+
+
+
+# Generate LaTeX code to print the combined RMSE values
+latex_code <- paste(
+  "\\begin{table}[ht]",
+  "\\centering",
+  "\\begin{tabular}{cccccc}",
+  "\\toprule",
+  "Model & H=1 & H=3 & H=6 & H=12 \\\\",
+  "\\midrule",
+  paste(apply(combined_rmse, 1, function(x) paste(x, collapse = " & ")), collapse = "\\\\"),
+  "\\bottomrule",
+  "\\end{tabular}",
+  "\\caption{Combined RMSE Values}",
+  "\\label{tab:combined_rmse}",
+  "\\end{table}",
+  sep = "\n"
+)
+
+# Print the LaTeX code
+print(latex_code)
+
+```
