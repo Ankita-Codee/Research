@@ -1,0 +1,1459 @@
+---
+title: "Canada Inflation Project"
+output: pdf_document
+date: "2024-05-25"
+---
+
+# Import Libraries
+
+```{r }
+import_libraries <- function(){
+library(fpp3)
+library(fabletools)
+library(zoo)
+library(tseries)
+library(quantmod) # download data form Yahoo finance
+library(moments) # to know summary statistics of data
+library(tinytex)
+library(forecast)
+library(tsintermittent)
+library(expsmooth)
+library(readxl)
+library(dplyr)
+library(tsibble)
+library(ggplot2)
+library(fable.prophet) 
+library(prophet)
+library(fable.prophet)
+library(tools)
+library(Hmisc)
+library(corrplot)
+library(ISLR)
+library(ggplot2)
+library(GGally)
+library(e1071)
+library(randomForest)
+library(xts)
+#install.packages("mass")
+}
+
+#******************************************************************************#
+# Read Excel/CSV File
+read_file <- function(name){
+  if (file_ext(name)=="xls"){
+    data <- read_excel(name)
+  }
+  else{
+    data <- read_csv(name)
+  }
+  return(data)
+}
+#******************************************************************************#
+# Sign Correlation
+rho.cal<-function(X){
+  rho.hat<- cor(X-mean(X), sign(X-mean(X)))
+  return(as.numeric(rho.hat))
+}
+
+#******************************************************************************#
+# Split Dataset into Train and Test Dataset
+split <- function(data,a,b)
+  {
+# Train Dataset
+#mutate(bcpi_p =  ((bcpi - lag(bcpi))/lag(bcpi)) * 100)
+train_dataset <- data %>% filter(Date>"1986-01-30" & Date<=a)
+# Test Dataset
+test_dataset <- data %>% filter(Date>a & Date<=b)
+return(list(c=train_dataset, d=test_dataset))
+}
+
+#******************************************************************************#
+# Convert data into timeseries dataset
+convert_ts_obj <- function(data)
+{
+# Create date variable
+ts_data <- zoo::fortify.zoo(data)
+ts_data <- as_tsibble(ts_data, index = Index) # create tissble object
+ts_data <- ts_data |>
+mutate(month = row_number()) |>
+update_tsibble(index = month, regular = TRUE)
+return(ts_data )
+}
+
+#******************************************************************************#
+# Plot Forecast
+plot_forecast <- function(forecast,data,test_data){
+# Plot the forecasts with whole data
+print(forecast |>
+  autoplot(data)+ 
+  labs(y = "% Change From Year Ago",
+       x = "Months after 1/1/1972",
+       title = "Inflation Rate Forecast : Canada"))
+ 
+#Plot only forecast period        
+print(forecast |>
+  autoplot(test_data) + 
+  labs(y = "% Change From Year Ago",
+        x = "Months after 1/1/1972",
+       title = "Inflation Rate Forecast : Canada"))
+}
+
+#******************************************************************************#
+# benchmark models (mean, naive, drift)
+benchmark <- function(data,train_data,test_data){
+ben_fit <- train_data |>
+  model(
+    #Mean = MEAN(cpi),
+    #Naïve = NAIVE(cpi),
+    Drift = RW(cpi ~ drift())
+  )
+
+# forecast
+ben_fc <- ben_fit |> forecast(test_data)
+
+# Plot Forecast
+plot_forecast(ben_fc,data,test_data)
+
+#Portmanteau tests for autocorrelation
+# Test for drift Method
+fit <- train_data |> model(RW(cpi ~ drift()))
+#tidy(fit)
+print(augment(fit) |> features(.innov, ljung_box, lag=25))
+#Residual check
+print(fit |>gg_tsresiduals())
+
+#Accuracy()
+accuracy.ben <-  accuracy(ben_fc,data)
+return(accuracy.ben)
+}
+
+#******************************************************************************#
+# Arima Model
+arima <- function(data,train_data,test_data){
+arima_fit <- train_data |> model(arima = ARIMA(cpi))
+#ets = ETS(CPI_Index)
+#prophet = prophet(cpi)
+  report(arima_fit) 
+
+# forecast
+arima_fc <- arima_fit |> forecast(test_data)
+
+# Plot Forecast
+plot_forecast(arima_fc ,data,test_data)
+
+#Portmanteau tests for autocorrelation
+# Test for drift Method
+print(augment(arima_fit) |> features(.innov, ljung_box, lag=25))
+#Residual check
+print(arima_fit  |>gg_tsresiduals())
+
+#Accuracy()
+accuracy.arima <-  accuracy(arima_fc,data)
+return(accuracy.arima )
+}
+
+#******************************************************************************#
+
+# Neural Network Model without Covariates
+nnar<- function(data,train_data,test_data){
+nnar_fit <- train_data |> model( N1=  NNETAR((cpi)))
+#ets = ETS(CPI_Index)
+#prophet = prophet(cpi)
+report(nnar_fit) 
+
+# forecast
+nnar_fc <- nnar_fit |> forecast(test_data)
+
+# Plot Forecast
+plot_forecast(nnar_fc ,data,test_data)
+
+#Portmanteau tests for autocorrelation
+# Test for drift Method
+print(augment(nnar_fit) |> features(.innov, ljung_box, lag=25))
+#Residual check
+print(nnar_fit  |>gg_tsresiduals())
+
+#Accuracy()
+accuracy.nnar <-  accuracy(nnar_fc,data)
+return(accuracy.nnar )
+}
+
+#******************************************************************************#
+# Neural Network Model with Covariates
+nnar_covar <- function(data,train_data,test_data){
+nnar_fit <- train_data |> model( N2=  NNETAR((cpi ~ exchange_rate + oil_price + money_supply  + interest_rate + bcpi + I(unemp_rate)^2)))
+#ets = ETS(CPI_Index)
+#prophet = prophet(cpi)
+report(nnar_fit) 
+
+# forecast
+nnar_fc <- nnar_fit |> forecast(test_data)
+
+# Plot Forecast
+plot_forecast(nnar_fc ,data,test_data)
+
+#Portmanteau tests for autocorrelation
+# Test for drift Method
+print(augment(nnar_fit) |> features(.innov, ljung_box, lag=25))
+#Residual check
+print(nnar_fit  |>gg_tsresiduals())
+
+#Accuracy()
+accuracy.nnar <-  accuracy(nnar_fc,data)
+return(accuracy.nnar )
+}
+
+#******************************************************************************#
+combination1 <- function(data,train_data,test_data){
+combine1 <- train_inflation %>% model(
+  Dynamic = ARIMA(cpi ~ exchange_rate + oil_price + money_supply  + interest_rate + bcpi + I(unemp_rate)^2),
+  Neural_Network =  NNETAR((cpi)),
+  N2 = (NNETAR(cpi ~ exchange_rate + oil_price + money_supply  + interest_rate + bcpi + I(unemp_rate)^2))
+) %>% 
+mutate( Combination=(Dynamic+ Neural_Network + N2)/3 ) 
+
+#Forecast
+
+fc_combine <- forecast(combine1, test_inflation) 
+
+# Plot the forecasts with whole data
+fc_combine %>%  autoplot(inflation)+ 
+  labs(y = "% Change From Year Ago",
+       x = "Months after 1/1/1972",
+       title = "CPI Index Forecast : Canada",
+       subtitle = "(Jan 1972 - Aug 2023)") 
+
+#Plot only forecast period  
+fc_combine %>%  autoplot(test_inflation)+ 
+  labs(y = "% Change From Year Ago",
+        x = "Months after 1/1/1972",
+       title = "CPI Index Forecast : Canada",
+       subtitle = "(Sept 2022 - Aug 2023)")
+
+
+#Accuracy
+accuracy.hm <- accuracy(fc_combine,inflation)
+accuracy.hm
+}
+#******************************************************************************#
+
+# Timeseries model 
+timeseries <- function(data,train_data,test_data){
+ts_fit <- train_data |> model( lm = TSLM(cpi ~ exchange_rate+ oil_price + money_supply + interest_rate + bcpi  + I(unemp_rate)^2))
+#ets = ETS(CPI_Index)
+#prophet = prophet(cpi)
+report(ts_fit) 
+
+# forecast
+ts_fc <- ts_fit  |> forecast(test_data)
+
+# Plot Forecast
+plot_forecast(ts_fc ,data,test_data)
+
+#Portmanteau tests for autocorrelation
+# Test for drift Method
+print(augment(ts_fit) |> features(.innov, ljung_box, lag=25))
+#Residual check
+print(ts_fit  |>gg_tsresiduals())
+
+#Accuracy()
+accuracy.ts <-  accuracy(ts_fc,data)
+return(accuracy.ts )
+}
+
+#******************************************************************************#
+# Dynamic model 
+dyn_reg <- function(data,train_data,test_data){
+dyn_fit <- train_data |> model( ARIMA(cpi ~ exchange_rate + oil_price + money_supply  + interest_rate + bcpi + I(unemp_rate)^2))
+report(dyn_fit) 
+
+# forecast
+dyn_fc <- dyn_fit  |> forecast(test_data)
+
+# Plot Forecast
+plot_forecast(dyn_fc ,data,test_data)
+
+#Portmanteau tests for autocorrelation
+# Test for drift Method
+print(augment(dyn_fit) |> features(.innov, ljung_box, lag=25))
+#Residual check
+print(dyn_fit  |>gg_tsresiduals())
+
+#Accuracy()
+accuracy.dyn <-  accuracy(dyn_fc,data)
+return(accuracy.dyn )
+}
+
+#******************************************************************************#
+# ETS Model
+ets_model <- function(data,train_data,test_data){
+ets_fit <- train_data |> model(ets = ETS(cpi))
+#prophet = prophet(cpi)
+  report(ets_fit) 
+
+# forecast
+ets_fc <- ets_fit |> forecast(test_data)
+
+# Plot Forecast
+plot_forecast(ets_fc ,data,test_data)
+
+#Portmanteau tests for autocorrelation
+# Test for drift Method
+print(augment(ets_fit) |> features(.innov, ljung_box, lag=25))
+#Residual check
+print(ets_fit  |>gg_tsresiduals())
+
+#Accuracy()
+accuracy.ets <-  accuracy(ets_fc,data)
+return(accuracy.ets)
+}
+
+#******************************************************************************#
+
+```
+
+# Load File
+
+```{r }
+# Import Libraries
+import_libraries()
+
+# Read File
+can_inf_data <- read_file("inflation_new.xls")
+
+# Exploratory Data Analysis
+#view(data)
+cat("Column Names are:", paste(colnames(can_inf_data), collapse = ", "))
+cat("\n")
+cat("Dimensions are:", paste(dim(can_inf_data)))
+print(head(can_inf_data))
+print(head(can_inf_data))
+
+# Check Missing Value
+print(sapply(can_inf_data, function(x) sum(is.na(x))))
+
+#OUTLIER#***********************************************************************
+# tsoutliers(can_inf_data$cpi)
+# 
+# tsoutliers(can_inf_data$interest_rate)
+# # Extract the outlier indices and replacement values
+# outlier_indices <- c(113, 114, 115, 116, 117)
+# replacement_values <- c(17.55, 17.70, 17.85, 18.00, 18.15)
+# # Replace outliers with specified replacement values
+# can_inf_data$interest_rate[outlier_indices] <- replacement_values
+# 
+# tsoutliers(can_inf_data$money_supply)
+# # Extract the outlier indices and replacement values
+# outlier_indices1 <- c(29, 32, 33)
+# replacement_values1 <- c(25.45704, 26.27413, 26.00447)
+# # Replace outliers with specified replacement values
+# can_inf_data$money_supply[outlier_indices1] <- replacement_values1
+# 
+# tsoutliers(can_inf_data$exchange_rate)
+# # Extract the outlier indices and replacement values
+# outlier_indices2 <- c(442, 443, 444, 445, 446, 447, 448, 459)
+# replacement_values2 <- c(-6.836283, -7.151235, -7.466188, -7.781140, -8.096093, -8.411045, -8.725998, 19.163995)
+# # Replace outliers with specified replacement values
+# can_inf_data$exchange_rate[outlier_indices2] <- replacement_values2
+# 
+# tsoutliers(can_inf_data$unemp_rate)
+# # Extract the outlier indices and replacement values
+# outlier_indices3 <- c(42, 126, 127, 128, 129, 130, 131, 132, 133, 450, 451, 452, 579, 580, 581, 582, 583, 584, 585, 586, 587, 588, 589, 590, 592, 593, 594, 618, 619)
+# replacement_values3 <- c(32.461875, 43.015679, 42.975798, 42.935917, 42.896036, 42.856154, 42.816273, 42.776392, 42.736511, 37.762417, 36.815155, 35.867893, -2.324115, -2.924089, -3.524064, -4.124038, -4.724013, -5.323988, -5.923962, -6.523937, -7.123912, -7.723886, -8.323861, -8.923835, -15.097402, -20.670995, -26.244588, 1.257860, 2.515720)
+# # Replace outliers with specified replacement values
+# can_inf_data$unemp_rate[outlier_indices3] <- replacement_values3
+# 
+# tsoutliers(can_inf_data$oil_price)
+# # Extract the outlier indices and replacement values
+# outlier_indices4 <- c(25, 26, 27, 28, 29, 30, 31, 592)
+# replacement_values4 <- c(35.25534, 49.44326, 63.63118, 77.81910, 92.00701, 106.19493, 120.38285, 120.78605)
+# # Replace outliers with specified replacement values
+# can_inf_data$oil_price[outlier_indices4] <- replacement_values4
+# 
+# tsoutliers(can_inf_data$bcpi)
+# # Extract the outlier indices and replacement values
+# outlier_indices5 <- c(405, 434, 435, 436, 437, 438, 439, 440, 441, 443, 444, 445, 446, 447, 448, 449, 451, 453, 472, 508, 509, 510, 511, 528, 529, 530, 579, 580, 581, 582, 583, 585, 586, 587, 601, 602, 603, 604, 605, 606, 607, 608, 617, 618, 619)
+# replacement_values5 <- c(561.4200, 637.3400, 625.9000, 614.4600, 603.0200, 591.5800, 580.1400, 568.7000, 557.2600, 539.0688, 532.3175, 525.5663, 518.8150, 512.0638, 505.3125, 498.5613, 488.1400, 496.1350, 684.7100, 631.9280, 628.3360, 624.7440, 621.1520, 339.4275, 336.0050, 332.5825, 397.4967, 400.5133, 403.5300, 406.5467, 409.5633, 420.7200, 428.8600, 437.0000, 644.7433, 649.4567, 654.1700, 658.8833, 663.5967, 668.3100, 673.0233, 677.7367, 631.8500, 629.9800, 628.1100)
+# # Replace outliers with specified replacement values
+# can_inf_data$bcpi[outlier_indices5] <- replacement_values5
+
+#################################################################################
+# Trend of the Inflation Rate
+can_inf_data |>
+  ggplot(aes(y = cpi, x = Date)) +
+  geom_line(col='blue') +
+  labs(y = "% Change of CPI",
+       x = "Year",
+       title = "Monthly Inflation Rate Over Time",
+       subtitle = "(Jan 1972 - Aug 2023)")
+
+# Check Distribution of the Data
+print(ggplot(data = can_inf_data, aes(x = cpi)) +
+  geom_histogram(bins=50,fill = "lightblue", color = "blue") +
+  labs(title = "Canada Inflation Rate Distribution",
+       x="Inflation Rate",
+       y="Frequency"))
+
+# summary of the whole Dataset
+summary(can_inf_data)
+
+# Compute correlation matrix
+correlation_matrix <- rcorr(as.matrix(can_inf_data[2:8]))
+print(correlation_matrix$r)
+corrplot(correlation_matrix$r, method = "color")
+
+# Create a scatterplot matrix using GGally
+selected_columns <-can_inf_data[, 2:8]
+print(ggpairs(selected_columns, progress = FALSE) +
+  theme_bw())
+
+# Scale Data
+inf_scaled <- scale(can_inf_data[2:8])
+inf <- cbind(can_inf_data[1],inf_scaled)
+
+# Check Outliers
+#tsoutliers(inflation$cpi)
+# Select the desired columns
+selected_columns <- c("cpi","interest_rate","money_supply","exchange_rate","unemp_rate","oil_price","bcpi")
+subset_data <- inf[, selected_columns]
+# Create a long-form data frame for boxplots
+subset_data_long <- tidyr::gather(subset_data, key = "Variable", value = "Value")
+# Create a boxplot using ggplot2
+print(ggplot(subset_data_long, aes(x = Variable, y = Value)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(x = "Variable", y = "Value") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  ggtitle("Boxplots for All Variables"))
+
+```
+
+* There are no missing values in the inflation dataset. I didnot replace outlier from external values with any values. So outlier part is commented.
+
+* I extracted from excel file and saved into can_inf_data. Then I converted this to tsibble object by calling below function.
+
+* (If you want to try for scaled dataset, you can do it with inf variable which have scaled data. In this scenario, instead of "can_inf_data", you need to use inf to make it tsible object)
+
+## Convert to tsibble object
+
+```{r }
+inflation <- convert_ts_obj(can_inf_data)
+head(inflation)
+tail(inflation)
+```
+
+# Model FITTING
+
+* I want to perform Rolling window Cross Validation for h=1/3/6/12. For this I used window_size=540
+* This dataset has data Jan 1972 to Aug 2023 (620)
+* {Training dataset} - January 1972 to December 2016 (540)
+* {Testing dataset} - January 2017 to August 2023 (80)
+* I performed forecast for h=1/3/6/12 
+* For h=1, will get 80 forecast values; for h=2 will get 78 forecasts, for h=3 will get 75 forecasts and for h=12 will get 69 forecasts.
+
+** I used name cpi everyehere, but its inflation rate.**
+
+## True values of cpi
+
+```{r}
+# Define the test data for different forecasting horizons
+test_data_h1 <- inflation[541:620, ]  # h = 1
+test_data_h3 <- inflation[543:620, ]  # h = 3
+test_data_h6 <- inflation[546:620, ]  # h = 6
+test_data_h12 <- inflation[552:620, ] # h = 12
+
+# Extract the actual CPI values
+actual_cpi_h1 <- test_data_h1$cpi
+actual_cpi_h3 <- test_data_h3$cpi
+actual_cpi_h6 <- test_data_h6$cpi
+actual_cpi_h12 <- test_data_h12$cpi
+
+# Store actual_cpi_h1, actual_cpi_h3, actual_cpi_h6, and actual_cpi_h12 in true_values
+true_values <- list(
+  `1` = actual_cpi_h1,
+  `3` = actual_cpi_h3,
+  `6` = actual_cpi_h6,
+  `12` = actual_cpi_h12
+)
+```
+
+## Arima Forecast h=1/3/6/12 
+
+```{r }
+#inflation <- inflation %>% filter(Date >= "1985-01-01")
+
+# Parameters
+arima_window_size <- 540
+arima_p <- 0
+arima_d <- 1
+arima_q <- 0
+arima_weightage <- 1
+arima_forecast_horizons <- c(1, 3, 6, 12)
+
+# Initialize lists to store forecasts and MSE
+arima_forecasts <- list()
+arima_mse_list <- c()
+
+# Iterate over each forecast horizon
+for (arima_h in arima_forecast_horizons) {
+  arima_forecast_values <- c()
+  arima_mse_values <- c()
+  
+  # Iterate over the data
+  for (arima_i in 1:(length(inflation$cpi) - arima_window_size - arima_h + 1)) {
+    # Extract current window of data
+    arima_window_data <- inflation$cpi[arima_i:(arima_i + arima_window_size - 1)]
+    
+    # Fit ARIMA model to window data
+    arima_model <- Arima(arima_window_data, order = c(arima_p, arima_d, arima_q))
+    
+    # Give weightage to recent values
+    arima_forecast <- forecast(arima_model, h = arima_h)$mean * arima_weightage
+   
+    # Only consider the last forecast value for the specified horizon
+    arima_forecast_value <- arima_forecast[length(arima_forecast)]
+    arima_forecast_values <- c(arima_forecast_values, arima_forecast_value)
+    
+    # Calculate actual value
+    arima_actual_value <- inflation$cpi[arima_i + arima_window_size + arima_h - 1]
+    
+    # Calculate MSE
+    arima_mse_value <- (arima_forecast_value - arima_actual_value)^2
+    arima_mse_values <- c(arima_mse_values, arima_mse_value)
+  }
+  
+  # Store forecasts and MSE for current horizon
+  arima_forecasts[[as.character(arima_h)]] <- arima_forecast_values
+  arima_mse_list <- c(arima_mse_list, sqrt(mean(arima_mse_values)))
+}
+
+# Plot forecasts
+par(mfrow = c(2, 2), mar = c(5, 5, 4, 2) + 0.1)
+for (arima_h in arima_forecast_horizons) {
+  plot(arima_forecasts[[as.character(arima_h)]], type = "l", col = "red", ylim = range(inflation$cpi), 
+       xlab = "Observation", ylab = "CPI", main = paste("ARIMA Forecast for h =", arima_h))
+  lines(inflation$cpi[(arima_window_size + arima_h):(length(inflation$cpi) )], col = "black")
+}
+
+# Print MSE for each horizon
+for (arima_i in 1:length(arima_forecast_horizons)) {
+  cat("MSE for h =", arima_forecast_horizons[arima_i], ":", arima_mse_list[arima_i], "\n")
+}
+
+# I calculated below accuracy, just to verify my above code.
+accuracy(arima_forecasts$`1`,true_values$`1`)
+accuracy(arima_forecasts$`3`,true_values$`3`)
+accuracy(arima_forecasts$`6`,true_values$`6`)
+accuracy(arima_forecasts$`12`,true_values$`12`)
+```
+* Here I used Arima(0,1,0) (even if I dont used p,d,q; it automatically selects (p=0, d=1, q=0) and it takes little more time to run, so I initially mentioned p,d,q values).
+
+* I am not provoding code for Naive as it is giving same forecast as Arima(0,1,0). It is also mentioned that ARIMA(0,1,0) model is indeed a naive model.
+
+## Dynamic Regression Forecast h=1/3/6/12 
+
+```{r}
+library(forecast)
+#inflation <- inflation %>% filter(Date >="1999-12-01")
+# Parameters
+dyn_window_size <- 540
+dyn_weightage <- 1
+dyn_forecast_horizons <- c(1,3,6,12)
+
+# Initialize lists to store forecasts and MSE
+dyn_forecasts <- list()
+dyn_mse_list <- c()
+
+# Iterate over each forecast horizon
+for (dyn_h in dyn_forecast_horizons) {
+  dyn_forecast_values <- c()
+  dyn_mse_values <- c()
+  
+  # Iterate over the data
+  for (dyn_i in 1:(length(inflation$cpi) - dyn_window_size - dyn_h + 1)) {
+    # Extract current window of data
+    dyn_window_data <- inflation[dyn_i:(dyn_i + dyn_window_size - 1), ]
+    
+    # Extract test data
+    dyn_test_data <- inflation[(dyn_i + dyn_window_size):(dyn_i + dyn_window_size + dyn_h - 1), ]
+    
+    # Fit ARIMAX model with external regressors using the window data
+    dyn_model <- dyn_window_data |> model(ARIMA(cpi ~ exchange_rate + oil_price + money_supply + interest_rate + bcpi + I(unemp_rate)^2))
+    
+    # Forecast for the specified horizon with weightage
+    dyn_forecast <- forecast(dyn_model, dyn_test_data)$.mean # Only forecasting for h = 1 here
+    
+    # Store the forecast value
+    dyn_forecast_value <- dyn_forecast[length(dyn_forecast)]
+    dyn_forecast_values <- c(dyn_forecast_values, dyn_forecast_value)
+    
+    # Calculate actual value
+    dyn_actual_value <- inflation$cpi[dyn_i + dyn_window_size + dyn_h - 1]
+    
+    # Calculate MSE
+    dyn_mse_value <-(dyn_forecast - dyn_actual_value)^2
+    dyn_mse_values <- c(dyn_mse_values, dyn_mse_value)
+  }
+  
+  # Store forecasts and MSE for current horizon
+  dyn_forecasts[[as.character(dyn_h)]] <- dyn_forecast_values
+  dyn_mse_list <- c(dyn_mse_list,  sqrt(mean(dyn_mse_values)))
+}
+
+# Plot forecasts for each horizon
+par(mfrow = c(2, 2), mar = c(5, 5, 4, 2) + 0.1)
+for (dyn_h in dyn_forecast_horizons) {
+  plot(dyn_forecasts[[as.character(dyn_h)]], type = "l", col = "red", ylim = range(inflation$cpi), 
+       xlab = "Observation", ylab = "CPI", main = paste("Forecast for h =", dyn_h))
+  lines(inflation$cpi[(dyn_window_size + dyn_h):(length(inflation$cpi) )], col = "black")
+}
+#legend("topright", legend = c("Forecast", "Actual"), col = c("red", "black"), lty = 1)
+# Print MSE for each horizon
+for (dyn_i in 1:length(dyn_forecast_horizons)) {
+  cat("MSE for h =", dyn_forecast_horizons[dyn_i], ":", dyn_mse_list[dyn_i], "\n")
+}
+
+accuracy(dyn_forecasts$`1`,true_values$`1`)
+accuracy(dyn_forecasts$`3`,true_values$`3`)
+accuracy(dyn_forecasts$`6`,true_values$`6`)
+accuracy(dyn_forecasts$`12`,true_values$`12`)
+```
+
+##  NNAR  h=1/3/6/12
+
+* This model takes time to run but not that much. However NNAR with external variables is time taking so you can run both neural network model by planning :P.
+
+```{r}
+# Load required library
+library(forecast)
+
+# Parameters
+nnar_window_size <- 540
+nnar_forecast_horizons <- c(1, 3, 6, 12)
+nnar_weightage <- 1
+
+# Initialize lists to store forecasts and MSE
+nnar_forecasts <- list()
+nnar_mse_list <- c()
+
+# Iterate over each forecast horizon
+for (nnar_h in nnar_forecast_horizons) {
+  nnar_forecast_values <- c()
+  nnar_mse_values <- c()
+  
+  # Iterate over the data
+  for (nnar_i in 1:(length(inflation$cpi) - nnar_window_size - nnar_h + 1)) {
+    # Extract current window of data
+    nnar_window_data <- inflation$cpi[nnar_i:(nnar_i + nnar_window_size - 1)]
+    
+    # Fit nnar model to window data
+    nnar_model <- nnetar(nnar_window_data)
+    
+    # Give weightage to recent values
+    nnar_forecast <- forecast(nnar_model, h = nnar_h)$mean * nnar_weightage
+    
+    # Only consider the last forecast value for the specified horizon
+    nnar_forecast_value <- nnar_forecast[length(nnar_forecast)]
+    nnar_forecast_values <- c(nnar_forecast_values, nnar_forecast_value)
+    
+    # Calculate actual value
+    nnar_actual_value <- inflation$cpi[nnar_i + nnar_window_size + nnar_h - 1]
+    
+    # Calculate MSE
+    nnar_mse_value <- (nnar_forecast_value - nnar_actual_value)^2
+    nnar_mse_values <- c(nnar_mse_values, nnar_mse_value)
+    
+    if (nnar_h == 1) {
+      nnar_forecasts[[as.character(nnar_h)]] <- nnar_forecast_values
+    } else if (nnar_h == 3) {
+      nnar_forecasts[[as.character(nnar_h)]] <- nnar_forecast_values
+    } else if (nnar_h == 6) {
+      nnar_forecasts[[as.character(nnar_h)]] <- nnar_forecast_values
+    } else if (nnar_h == 12) {
+      nnar_forecasts[[as.character(nnar_h)]] <- nnar_forecast_values
+    }
+  }
+  
+  nnar_mse_list <- c(nnar_mse_list, sqrt(mean(nnar_mse_values)))
+}
+
+# Plot forecasts for each horizon
+par(mfrow = c(2, 2), mar = c(5, 5, 4, 2) + 0.1)
+for (nnar_h in nnar_forecast_horizons) {
+  plot(nnar_forecasts[[as.character(nnar_h)]], type = "l", col = "red", ylim = range(inflation$cpi), xlab = "Observation", ylab = "CPI", main = paste("NNAR Forecast for h =", nnar_h))
+  lines(inflation$cpi[(nnar_window_size + nnar_h):(length(inflation$cpi))], col = "black")
+  #legend("topright", legend = c("Forecast", "Actual"), col = c("blue", "red"), lty = 1)
+}
+
+# Print MSE for each horizon
+for (nnar_i in 1:length(nnar_forecast_horizons)) {
+  cat("MSE for h =", nnar_forecast_horizons[nnar_i], ":", nnar_mse_list[nnar_i], "\n")
+}
+
+accuracy(nnar_forecasts$`1`,true_values$`1`)
+accuracy(nnar_forecasts$`3`,true_values$`3`)
+accuracy(nnar_forecasts$`6`,true_values$`6`)
+accuracy(nnar_forecasts$`12`,true_values$`12`)
+
+```
+
+## NNAR with external variables  h=1/3/6/12 
+
+```{r}
+library(forecast)
+
+# Parameters
+nnarx_window_size <- 540
+nnarx_weightage <- 1
+nnarx_forecast_horizons <- c(1,3,6,12)
+
+# Initialize lists to store forecasts and MSE
+nnarx_forecasts <- list()
+nnarx_mse_list <- c()
+
+# Iterate over each forecast horizon
+for (nnarx_h in nnarx_forecast_horizons) {
+  nnarx_forecast_values <- c()
+  nnarx_mse_values <- c()
+  
+  # Iterate over the data
+  for (nnarx_i in 1:(length(inflation$cpi) - nnarx_window_size - nnarx_h + 1)) {
+    # Extract current window of data
+    nnarx_window_data <- inflation[nnarx_i:(nnarx_i + nnarx_window_size - 1), ]
+    
+    # Extract test data
+    nnarx_test_data <- inflation[(nnarx_i + nnarx_window_size):(nnarx_i + nnarx_window_size + nnarx_h - 1), ]
+    
+    # Fit ARIMAX model with external regressors using the window data
+    nnarx_model <- nnarx_window_data |> model(NNETAR(cpi ~ exchange_rate + oil_price + money_supply + interest_rate + bcpi + I(unemp_rate)))
+    
+    # Forecast for the specified horizon with weightage
+    nnarx_forecast <- forecast(nnarx_model, nnarx_test_data)$.mean * nnarx_weightage # Only forecasting for h = 1 here
+    
+    # Store the forecast value
+    nnarx_forecast_value <- nnarx_forecast[length(nnarx_forecast)]
+    nnarx_forecast_values <- c(nnarx_forecast_values, nnarx_forecast_value)
+    
+    # Calculate actual value
+    nnarx_actual_value <- inflation$cpi[nnarx_i + nnarx_window_size + nnarx_h - 1]
+    
+    # Calculate MSE
+    nnarx_mse_value <-(nnarx_forecast - nnarx_actual_value)^2
+    nnarx_mse_values <- c(nnarx_mse_values, nnarx_mse_value)
+  }
+  
+  # Store forecasts and MSE for current horizon
+  nnarx_forecasts[[as.character(nnarx_h)]] <- nnarx_forecast_values
+  nnarx_mse_list <- c(nnarx_mse_list,  sqrt(mean(nnarx_mse_values)))
+}
+
+# Plot forecasts for each horizon
+par(mfrow = c(2, 2), mar = c(5, 5, 4, 2) + 0.1)
+for (nnarx_h in nnarx_forecast_horizons) {
+  plot(nnarx_forecasts[[as.character(nnarx_h)]], type = "l", col = "red", ylim = range(inflation$cpi), 
+       xlab = "Observation", ylab = "CPI", main = paste("Forecast for h =", nnarx_h))
+  lines(inflation$cpi[(nnarx_window_size + nnarx_h):(length(inflation$cpi) )], col = "black")
+}
+
+# Print MSE for each horizon
+for (nnarx_i in 1:length(nnarx_forecast_horizons)) {
+  cat("MSE for h =", nnarx_forecast_horizons[nnarx_i], ":", nnarx_mse_list[nnarx_i], "\n")
+}
+
+accuracy(nnarx_forecasts$`1`,true_values$`1`)
+accuracy(nnarx_forecasts$`3`,true_values$`3`)
+accuracy(nnarx_forecasts$`6`,true_values$`6`)
+accuracy(nnarx_forecasts$`12`,true_values$`12`)
+```
+
+## RANDOM FOREST 
+
+* As Random Forest is can not be implemented directly on the data. I included 6 lagged values as predictor in the dataset.
+* Therefore for different horizon dataset will be differet and hence I calculated RMSE value by taking different dataset for the resepective horizon.
+* I used caret package for Random Forest.
+* In this model, I will get Rsquared as NaN as I am using method="timeslice".
+
+### RF Caret  h=1
+
+```{r}
+# Load required libraries
+library(caret)
+library(randomForest)
+library(dplyr)
+
+# Create lag features for time series data
+h1_lags <- 1:6  # Number of lags to consider for horizon 1
+# Create lagged features for the CPI column
+h1_lagged_data <- cbind(sapply(h1_lags, function(l) lag(inflation$cpi, l))) # Create lagged data
+
+# Combine the lagged features into one data frame
+h1_lagged_df <- data.frame(h1_lagged_data)
+colnames(h1_lagged_df) <- paste0("h1_lag_", h1_lags)  # Rename columns with lag prefixes
+
+# Merge the lagged features with the original data
+h1_final_data <- bind_cols(inflation, h1_lagged_df)  # Combine data frames
+
+# Remove rows with NAs created by lagging
+h1_final_data <- h1_final_data[complete.cases(h1_final_data), ]
+
+# Define the forecasting horizon
+forecast_horizon <- 1
+
+train_inflation <- h1_final_data %>% filter(Date <= '2016-12-28')
+missing_values <- sum(is.na(train_inflation))
+# Want last 80 forecast to compare with other models
+test_inflation <- h1_final_data %>% filter(Date >= '2016-12-28' & Date <= '2023-08-28')
+
+# Define the time control for time series cross-validation
+myTimeControl <- trainControl(
+  method = "timeslice",
+  initialWindow = 500,
+  horizon = forecast_horizon,
+  fixedWindow = TRUE,
+  allowParallel = TRUE
+)
+
+# Define the formula for the model
+formula <- as.formula("cpi ~ . - Date - Index - month")
+
+# Train the Random Forest model
+rf_model <- train(
+  formula,
+  data = train_inflation,
+  method = "rf",
+  trControl = myTimeControl,
+  tuneGrid = expand.grid(mtry = 4),  # Adjust tuning parameters as needed
+  metric = "RMSE",
+  ntree = 100 
+)
+
+# Get forecasted values
+rf_forecast1 <- predict(rf_model, newdata = test_inflation)
+
+# Print Accuracy
+accuracy(rf_forecast1,test_inflation$cpi)
+
+# Calculate RMSE
+rf_RMSE_h1 <- sqrt(mean((rf_forecast1 - test_inflation$cpi)^2))
+
+# Print RMSE
+print(paste("RMSE:", rf_RMSE_h1))
+plot(test_inflation$cpi, type = "l")
+lines(rf_forecast1, col = "red")
+
+```
+### RF Caret h=3
+
+```{r}
+# Load required libraries
+library(caret)
+library(randomForest)
+library(dplyr)
+
+# Create lag features for time series data for horizon 3
+h3_lags <- 3:8  # Number of lags to consider for horizon 3
+# Create lagged features for the CPI column
+h3_lagged_data <- cbind(sapply(h3_lags, function(l) lag(inflation$cpi, l))) # Create lagged data
+
+# Combine the lagged features into one data frame
+h3_lagged_df <- data.frame(h3_lagged_data)
+colnames(h3_lagged_df) <- paste0("h3_lag_", h3_lags)  # Rename columns with lag prefixes
+
+# Merge the lagged features with the original data
+h3_final_data <- bind_cols(inflation, h3_lagged_df)  # Combine data frames
+
+# Remove rows with NAs created by lagging
+h3_final_data <- h3_final_data[complete.cases(h3_final_data), ]
+
+# Define the forecasting horizon
+forecast_horizon <- 3  # Update to horizon 3
+
+train_inflation <- h3_final_data %>% filter(Date <= '2016-12-28')
+missing_values <- sum(is.na(train_inflation))
+# Want last 80 forecast to compare with other models
+test_inflation <- h3_final_data %>% filter(Date >= '2017-02-28' & Date <= '2023-08-28')
+
+# Define the time control for time series cross-validation
+myTimeControl <- trainControl(
+  method = "timeslice",
+  initialWindow = 500,
+  horizon = forecast_horizon,
+  fixedWindow = TRUE,
+  allowParallel = TRUE
+)
+
+# Define the formula for the model
+formula <- as.formula("cpi ~ . - Date - Index - month")
+
+# Train the Random Forest model
+rf_model <- train(
+  formula,
+  data = train_inflation,
+  method = "rf",
+  trControl = myTimeControl,
+  tuneGrid = expand.grid(mtry = 4),  # Adjust tuning parameters as needed
+  metric = "RMSE",
+  ntree = 100 
+)
+
+# Get forecasted values
+rf_forecast3 <- predict(rf_model, newdata = test_inflation)
+
+# Print Accuracy
+accuracy(rf_forecast3,test_inflation$cpi)
+
+# Calculate RMSE
+rf_RMSE_h3 <- sqrt(mean((rf_forecast3 - test_inflation$cpi)^2))
+
+# Print RMSE
+print(paste("RMSE:", rf_RMSE_h3))
+plot(test_inflation$cpi, type = "l")
+lines(rf_forecast3, col = "red")
+
+```
+### RF Caret h=6
+
+```{r}
+# Load required libraries
+library(caret)
+library(randomForest)
+library(dplyr)
+
+# Create lag features for time series data for horizon 6
+h6_lags <- 6:11  # Number of lags to consider for horizon 6
+# Create lagged features for the CPI column
+h6_lagged_data <- cbind(sapply(h6_lags, function(l) lag(inflation$cpi, l))) # Create lagged data
+
+# Combine the lagged features into one data frame
+h6_lagged_df <- data.frame(h6_lagged_data)
+colnames(h6_lagged_df) <- paste0("h6_lag_", h6_lags)  # Rename columns with lag prefixes
+
+# Merge the lagged features with the original data
+h6_final_data <- bind_cols(inflation, h6_lagged_df)  # Combine data frames
+
+# Remove rows with NAs created by lagging
+h6_final_data <- h6_final_data[complete.cases(h6_final_data), ]
+
+# Define the forecasting horizon
+forecast_horizon <- 6  # Update to horizon 6
+
+train_inflation <- h6_final_data %>% filter(Date <= '2016-12-28')
+missing_values <- sum(is.na(train_inflation))
+# Want last 80 forecast to compare with other models
+test_inflation <- h6_final_data %>% filter(Date >= '2017-05-28' & Date <= '2023-08-28')
+
+# Define the time control for time series cross-validation
+myTimeControl <- trainControl(
+  method = "timeslice",
+  initialWindow = 500,
+  horizon = forecast_horizon,
+  fixedWindow = TRUE,
+  allowParallel = TRUE
+)
+
+# Define the formula for the model
+formula <- as.formula("cpi ~ . - Date - Index - month")
+
+# Train the Random Forest model
+rf_model <- train(
+  formula,
+  data = train_inflation,
+  method = "rf",
+  trControl = myTimeControl,
+  tuneGrid = expand.grid(mtry = 4),  # Adjust tuning parameters as needed
+  metric = "RMSE",
+  ntree = 100 
+)
+
+# Get forecasted values
+rf_forecast6 <- predict(rf_model, newdata = test_inflation)
+
+# Print Accuracy
+accuracy(rf_forecast6, test_inflation$cpi)
+
+# Calculate RMSE
+rf_RMSE_h6 <- sqrt(mean((rf_forecast6 - test_inflation$cpi)^2))
+
+# Print RMSE
+print(paste("RMSE:", rf_RMSE_h6))
+plot(test_inflation$cpi, type = "l")
+lines(rf_forecast6, col = "red")
+
+```
+
+### RF Caret h=12
+
+```{r}
+# Load required libraries
+library(caret)
+library(randomForest)
+library(dplyr)
+
+# Create lag features for time series data for horizon 12
+h12_lags <- 12:17  # Number of lags to consider for horizon 12
+# Create lagged features for the CPI column
+h12_lagged_data <- cbind(sapply(h12_lags, function(l) lag(inflation$cpi, l))) # Create lagged data
+
+# Combine the lagged features into one data frame
+h12_lagged_df <- data.frame(h12_lagged_data)
+colnames(h12_lagged_df) <- paste0("h12_lag_", h12_lags)  # Rename columns with lag prefixes
+
+# Merge the lagged features with the original data
+h12_final_data <- bind_cols(inflation, h12_lagged_df)  # Combine data frames
+
+# Remove rows with NAs created by lagging
+h12_final_data <- h12_final_data[complete.cases(h12_final_data), ]
+
+# Define the forecasting horizon
+forecast_horizon <- 12  # Update to horizon 12
+
+train_inflation <- h12_final_data %>% filter(Date <= '2016-12-28')
+missing_values <- sum(is.na(train_inflation))
+# Want last 80 forecast to compare with other models
+test_inflation <- h12_final_data %>% filter(Date >= '2017-11-28' & Date <= '2023-08-28')
+
+# Define the time control for time series cross-validation
+myTimeControl <- trainControl(
+  method = "timeslice",
+  initialWindow = 500,
+  horizon = forecast_horizon,
+  fixedWindow = TRUE,
+  allowParallel = TRUE
+)
+
+# Define the formula for the model
+formula <- as.formula("cpi ~ . - Date - Index - month")
+
+# Train the Random Forest model
+rf_model <- train(
+  formula,
+  data = train_inflation,
+  method = "rf",
+  trControl = myTimeControl,
+  tuneGrid = expand.grid(mtry = 4),  # Adjust tuning parameters as needed
+  metric = "RMSE",
+  ntree = 100 
+)
+
+# Get forecasted values
+rf_forecast12 <- predict(rf_model, newdata = test_inflation)
+
+# Print Accuracy
+accuracy(rf_forecast12, test_inflation$cpi)
+
+# Calculate RMSE
+rf_RMSE_h12 <- sqrt(mean((rf_forecast12 - test_inflation$cpi)^2))
+
+# Print RMSE
+print(paste("RMSE:", rf_RMSE_h12))
+plot(test_inflation$cpi, type = "l")
+lines(rf_forecast12, col = "red")
+
+```
+### RF h=1/3/6/12 forecast in one variable rf_forecasts
+
+```{r}
+# Store rf_forecast1, rf_forecast3, rf_forecast6, and rf_forecast12 in rf_forecast
+rf_forecasts <- list(
+  `1` = rf_forecast1,
+  `3` = rf_forecast3,
+  `6` = rf_forecast6,
+  `12` = rf_forecast12
+)
+```
+
+
+##XGBoost with combination of hyperparameters
+
+* I use different combination of hyper parameters in tuneGrid for the following code. And I got minimum RMSE for nrounds = 100, max_depth = 4,    eta (learning rate) = 0.1, gamma = 0.2 ( minimum loss reduction), colsample_bytree ( subsample ratio of columns) = 1, min_child_weight = 10,
+ subsample = 0.8. So used this combination for h=1/3/6/12. Now I am commenting below code as it will take so much time to run.
+ 
+```{r}
+# # Load required libraries
+# library(caret)
+# library(randomForest)
+# library(dplyr)
+# 
+# # Function to create lagged features
+# create_lagged_features <- function(data, column, lags) {
+#   lagged_data <- cbind(sapply(lags, function(l) lag(data[[column]], l)))
+#   colnames(lagged_data) <- paste0(column, "_lag_", lags)
+#   return(lagged_data)
+# }
+# 
+# # Create lagged features for CPI column
+# lags <- 1:6
+# lagged_features <- create_lagged_features(inflation, "cpi", lags)
+# 
+# # Merge lagged features with original data
+# final_data <- bind_cols(inflation, lagged_features)
+# final_data <- final_data[complete.cases(final_data), ]
+# 
+# # Define training and testing data
+# train_data <- final_data %>% filter(Date <= '2016-12-28')
+# test_data <- final_data %>% filter(Date >= '2017-05-28' & Date <= '2023-08-28')
+# 
+# # Define time control for time series cross-validation
+# myTimeControl <- trainControl(
+#   method = "timeslice",
+#   initialWindow = 500,
+#   horizon = 1,
+#   fixedWindow = TRUE,
+#   allowParallel = TRUE
+# )
+# 
+# # Define formula for the model
+# formula <- as.formula("cpi ~ . - Date-Index-month")
+# 
+# # Tune hyperparameters more finely
+# tuneGrid <- expand.grid(
+#   nrounds = c(100, 200, 300),             # number of boosting rounds
+#   max_depth = c(4, 6, 8),             # maximum depth of trees
+#   eta = c(0.1, 0.2, 0.3),                 # learning rate
+#   gamma = c(0, 0.1, 0.2),                 # minimum loss reduction required to make a further partition
+#   colsample_bytree = c(0.6, 0.8, 1),    # subsample ratio of columns
+#   min_child_weight = c(1, 5, 10),
+#   subsample = c(0.6, 0.8, 1)              # subsample ratio of the training instances
+# )
+# 
+# # Train XGBoost model with improved parameters
+# xgb_model <- train(
+#   formula,
+#   data = train_data,
+#   method = "xgbTree",
+#   trControl = myTimeControl,
+#   tuneGrid = tuneGrid,
+#   metric = "RMSE"
+# )
+# # Get forecasted values
+# forecast_values_xgb <- predict(xgb_model, newdata = test_data)
+# 
+# # Calculate RMSE
+# rmse <- RMSE(forecast_values_xgb, test_data$cpi)
+# 
+# # Print RMSE
+# print(paste("RMSE:", rmse))
+
+```
+
+### XGB h=1
+
+```{r}
+# Load required libraries
+library(caret)
+# Load required libraries
+library(randomForest)
+library(dplyr)
+
+# Create lag features for time series data
+h1_lags <- 1:6  # Number of lags to consider
+# Create lagged features for the CPI column
+h1_lagged_data <- cbind(sapply(h1_lags, function(l) lag(inflation$cpi, l))) # Create lagged data
+
+# Combine the lagged features into one data frame
+h1_lagged_df <- data.frame(h1_lagged_data)
+colnames(h1_lagged_df) <- paste0("h1_lag_", h1_lags)  # Rename columns with lag prefixes
+
+# Merge the lagged features with the original data
+h1_final_data <- bind_cols(inflation, h1_lagged_df)  # Combine data frames
+
+# Remove rows with NAs created by lagging
+h1_final_data <- h1_final_data[complete.cases(h1_final_data), ]
+
+# Define the forecasting horizon
+forecast_horizon <- 1
+train_inflation <- h1_final_data %>% filter(Date <= '2016-12-28')
+test_inflation <- h1_final_data %>% filter(Date >= '2016-12-28' & Date <= '2023-08-28')
+
+# Define the time control for time series cross-validation
+myTimeControl <- trainControl(
+  method = "timeslice",
+  initialWindow = 500,
+  horizon = forecast_horizon,
+  fixedWindow = TRUE,
+  allowParallel = TRUE
+)
+
+# Define the formula for the model
+formula <- as.formula("cpi ~ . - Date")
+
+# Define the tuning grid
+tuneGrid <- expand.grid(
+  nrounds = 100,             # number of boosting rounds
+  max_depth = 4,             # maximum depth of trees
+  eta = 0.1,                 # learning rate
+  gamma = 0.2,                 # minimum loss reduction required to make a further partition
+  colsample_bytree = 1,    # subsample ratio of columns
+  min_child_weight = 10,
+  subsample = 0.8              # subsample ratio of the training instances
+)
+
+# Train the XGBoost model
+xgb_model <- train(
+  formula,
+  data = train_inflation,
+  method = "xgbTree",
+  trControl = myTimeControl,
+  tuneGrid = tuneGrid,  
+  metric = "RMSE"
+)
+
+# Get forecasted values
+xgb_forecast1 <- predict(xgb_model, newdata = test_inflation)
+
+cat('\n')
+# Print or use forecasted values as needed
+accuracy(xgb_forecast1, test_inflation$cpi)
+
+# Calculate RMSE
+xgb_rmse_h1 <- sqrt(mean((xgb_forecast1 - test_inflation$cpi)^2))
+
+# Print RMSE
+print(paste("RMSE:", xgb_rmse_h1))
+
+```
+
+###XGB h=3
+
+```{r}
+# Load required libraries
+library(caret)
+# Load required libraries
+library(randomForest)
+library(dplyr)
+
+# Create lag features for time series data
+h3_lags <- 3:8  # Number of lags to consider
+# Create lagged features for the CPI column
+h3_lagged_data <- cbind(sapply(h3_lags, function(l) lag(inflation$cpi, l))) # Create lagged data
+
+# Combine the lagged features into one data frame
+h3_lagged_df <- data.frame(h3_lagged_data)
+colnames(h3_lagged_df) <- paste0("h3_lag_", h3_lags)  # Rename columns with lag prefixes
+
+# Merge the lagged features with the original data
+h3_final_data <- bind_cols(inflation, h3_lagged_df)  # Combine data frames
+
+# Remove rows with NAs created by lagging
+h3_final_data <- h3_final_data[complete.cases(h3_final_data), ]
+
+# Define the forecasting horizon
+forecast_horizon <- 3
+train_inflation <- h3_final_data %>% filter(Date <= '2016-12-28')
+test_inflation <- h3_final_data %>% filter(Date >= '2017-02-28' & Date <= '2023-08-28')
+
+# Define the time control for time series cross-validation
+myTimeControl <- trainControl(
+  method = "timeslice",
+  initialWindow = 500,
+  horizon = forecast_horizon,
+  fixedWindow = TRUE,
+  allowParallel = TRUE
+)
+
+# Define the formula for the model
+formula <- as.formula("cpi ~ . - Date")
+
+# Define the tuning grid
+tuneGrid <- expand.grid(
+  nrounds = 100,             # number of boosting rounds
+  max_depth = 4,             # maximum depth of trees
+  eta = 0.1,                 # learning rate
+  gamma = 0.2,                 # minimum loss reduction required to make a further partition
+  colsample_bytree = 1,    # subsample ratio of columns
+  min_child_weight = 10,
+  subsample = 0.8              # subsample ratio of the training instances
+)
+
+# Train the XGBoost model
+xgb_model <- train(
+  formula,
+  data = train_inflation,
+  method = "xgbTree",
+  trControl = myTimeControl,
+  tuneGrid = tuneGrid,  
+  metric = "RMSE"
+)
+
+# Get forecasted values
+xgb_forecast3 <- predict(xgb_model, newdata = test_inflation)
+
+cat('\n')
+# Print or use forecasted values as needed
+accuracy(xgb_forecast3, test_inflation$cpi)
+
+# Calculate RMSE
+xgb_rmse_h3 <- sqrt(mean((xgb_forecast3 - test_inflation$cpi)^2))
+
+# Print RMSE
+print(paste("RMSE:", xgb_rmse_h3))
+
+```
+### XGB h=6
+
+```{r}
+# Load required libraries
+library(caret)
+# Load required libraries
+library(randomForest)
+library(dplyr)
+
+# Create lag features for time series data
+h6_lags <- 6:11  # Number of lags to consider
+# Create lagged features for the CPI column
+h6_lagged_data <- cbind(sapply(h6_lags, function(l) lag(inflation$cpi, l))) # Create lagged data
+
+# Combine the lagged features into one data frame
+h6_lagged_df <- data.frame(h6_lagged_data)
+colnames(h6_lagged_df) <- paste0("h6_lag_", h6_lags)  # Rename columns with lag prefixes
+
+# Merge the lagged features with the original data
+h6_final_data <- bind_cols(inflation, h6_lagged_df)  # Combine data frames
+
+# Remove rows with NAs created by lagging
+h6_final_data <- h6_final_data[complete.cases(h6_final_data), ]
+
+# Define the forecasting horizon
+forecast_horizon <- 6
+train_inflation <- h6_final_data %>% filter(Date <= '2016-12-28')
+test_inflation <- h6_final_data %>% filter(Date >= '2017-05-28' & Date <= '2023-08-28')
+
+# Define the time control for time series cross-validation
+myTimeControl <- trainControl(
+  method = "timeslice",
+  initialWindow = 500,
+  horizon = forecast_horizon,
+  fixedWindow = TRUE,
+  allowParallel = TRUE
+)
+
+# Define the formula for the model
+formula <- as.formula("cpi ~ . - Date")
+
+# Define the tuning grid
+tuneGrid <- expand.grid(
+  nrounds = 100,             # number of boosting rounds
+  max_depth = 4,             # maximum depth of trees
+  eta = 0.1,                 # learning rate
+  gamma = 0.2,                 # minimum loss reduction required to make a further partition
+  colsample_bytree = 1,    # subsample ratio of columns
+  min_child_weight = 10,
+  subsample = 0.8              # subsample ratio of the training instances
+)
+
+# Train the XGBoost model
+xgb_model <- train(
+  formula,
+  data = train_inflation,
+  method = "xgbTree",
+  trControl = myTimeControl,
+  tuneGrid = tuneGrid,  
+  metric = "RMSE"
+)
+
+# Get forecasted values
+xgb_forecast6 <- predict(xgb_model, newdata = test_inflation)
+
+cat('\n')
+# Print or use forecasted values as needed
+accuracy(xgb_forecast6, test_inflation$cpi)
+
+# Calculate RMSE
+xgb_rmse_6 <- sqrt(mean((xgb_forecast6 - test_inflation$cpi)^2))
+
+# Print RMSE
+print(paste("RMSE:", xgb_rmse_6))
+
+```
+
+### XGB h=12
+
+```{r}
+# Load required libraries
+library(caret)
+# Load required libraries
+library(randomForest)
+library(dplyr)
+
+# Create lag features for time series data
+h12_lags <- 12:17  # Number of lags to consider
+# Create lagged features for the CPI column
+h12_lagged_data <- cbind(sapply(h12_lags, function(l) lag(inflation$cpi, l))) # Create lagged data
+
+# Combine the lagged features into one data frame
+h12_lagged_df <- data.frame(h12_lagged_data)
+colnames(h12_lagged_df) <- paste0("h12_lag_", h12_lags)  # Rename columns with lag prefixes
+
+# Merge the lagged features with the original data
+h12_final_data <- bind_cols(inflation, h12_lagged_df)  # Combine data frames
+
+# Remove rows with NAs created by lagging
+h12_final_data <- h12_final_data[complete.cases(h12_final_data), ]
+
+# Define the forecasting horizon
+forecast_horizon <- 12
+train_inflation <- h12_final_data %>% filter(Date <= '2016-12-28')
+test_inflation <- h12_final_data %>% filter(Date >= '2017-11-28' & Date <= '2023-08-28')
+
+# Define the time control for time series cross-validation
+myTimeControl <- trainControl(
+  method = "timeslice",
+  initialWindow = 500,
+  horizon = forecast_horizon,
+  fixedWindow = TRUE,
+  allowParallel = TRUE
+)
+
+# Define the formula for the model
+formula <- as.formula("cpi ~ . - Date")
+
+# Define the tuning grid
+tuneGrid <- expand.grid(
+  nrounds = 100,             # number of boosting rounds
+  max_depth = 4,             # maximum depth of trees
+  eta = 0.1,                 # learning rate
+  gamma = 0.2,                 # minimum loss reduction required to make a further partition
+  colsample_bytree = 1,    # subsample ratio of columns
+  min_child_weight = 10,
+  subsample = 0.8              # subsample ratio of the training instances
+)
+
+# Train the XGBoost model
+xgb_model <- train(
+  formula,
+  data = train_inflation,
+  method = "xgbTree",
+  trControl = myTimeControl,
+  tuneGrid = tuneGrid,  
+  metric = "RMSE"
+)
+
+# Get forecasted values
+xgb_forecast12 <- predict(xgb_model, newdata = test_inflation)
+
+cat('\n')
+# Print or use forecasted values as needed
+accuracy(xgb_forecast12, test_inflation$cpi)
+
+# Calculate RMSE
+xgb_rmse_h12 <- sqrt(mean((xgb_forecast12 - test_inflation$cpi)^2))
+
+# Print RMSE
+print(paste("RMSE:", xgb_rmse_h12))
+
+```
+
+###
+
+```{r}
+# Store xgb_forecast1, xgb_forecast3, xgb_forecast6, and xgb_forecast12 in xgb_forecast
+xgb_forecasts <- list(
+  `1` = xgb_forecast1,
+  `3` = xgb_forecast3,
+  `6` = xgb_forecast6,
+  `12` = xgb_forecast12
+)
+```
+
+
+```{r}
+```
