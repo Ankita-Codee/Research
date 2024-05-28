@@ -1,0 +1,3962 @@
+---
+title: "Forecast Comb Package"
+output: pdf_document
+date: "2024-05-14"
+---
+#Simple Average 
+
+## h=1
+(dyn+nnar+rf)
+
+```{r}
+# Calculate simple average forecast for horizon 1
+simple_average_forecast_1 <- (dyn_forecasts$`1` + nnar_forecasts$`1` + rf_forecasts$`1`) / 3
+
+# Print the simple average forecast for horizon 1
+print(simple_average_forecast_1)
+
+# Calculate the accuracy metrics
+accuracy_simple_average_1 <- accuracy(simple_average_forecast_1, true_values$`1`)
+
+```
+
+## h=3
+
+```{r}
+# Calculate simple average forecast for horizon 3
+simple_average_forecast_3 <- (dyn_forecasts$`3` + nnar_forecasts$`3` + rf_forecasts$`3`) / 3
+
+# Calculate the accuracy metrics for horizon 3
+accuracy_simple_average_3 <- accuracy(simple_average_forecast_3, true_values$`3`)
+accuracy_simple_average_3
+
+```
+
+## h=6
+```{r}
+# Calculate simple average forecast for horizon 6
+simple_average_forecast_6 <- (dyn_forecasts$`6` + nnar_forecasts$`6` + rf_forecasts$`6`) / 3
+
+# Calculate the accuracy metrics for horizon 6
+accuracy_simple_average_6 <- accuracy(simple_average_forecast_6, true_values$`6`)
+accuracy_simple_average_6
+```
+
+## h=12
+```{r}
+# Calculate simple average forecast for horizon 12
+simple_average_forecast_12 <- (dyn_forecasts$`12` + nnar_forecasts$`12` + rf_forecasts$`12`) / 3
+
+# Calculate the accuracy metrics for horizon 12
+accuracy_simple_average_12 <- accuracy(simple_average_forecast_12, true_values$`12`)
+accuracy_simple_average_12
+```
+# Regression-based Combination Methods 
+# Constrained Least Squares (CLS) regression(sum of weights equal to 1 and positive)
+## h=1
+
+```{r}
+
+# Linear regression model LSE1: With intercept
+model_LSE1 <- lm(true_values$`1` ~ arima_forecasts$`1` + dyn_forecasts$`1` + nnar_forecasts$`1` + rf_forecasts$`1` + nnarx_forecasts$`1` + xgb_forecasts$`1`)
+
+# Get coefficients
+coefficients_LSE1 <- coef(model_LSE1)
+
+# Extract weights
+w0_LSE1 <- coefficients_LSE1[1]
+w1_LSE1 <- coefficients_LSE1[2]
+w2_LSE1 <- coefficients_LSE1[3]
+w3_LSE1 <- coefficients_LSE1[4]
+w4_LSE1 <- coefficients_LSE1[5]
+w5_LSE1 <- coefficients_LSE1[6]
+w6_LSE1 <- coefficients_LSE1[7]
+
+
+# Sum of weights
+sum_weights <- sum(w0_LSE1, w1_LSE1, w2_LSE1, w3_LSE1, w4_LSE1, w5_LSE1, w6_LSE1)
+
+# Ensure positive weights and sum equal to 1
+weights <- c(w0_LSE1, w1_LSE1, w2_LSE1, w3_LSE1,  w4_LSE1, w5_LSE1, w6_LSE1)
+weights <- pmax(0, weights) # Ensure positive weights
+weights <- weights / sum(weights) # Normalize weights to sum up to 1
+
+# Combine forecasts using estimated weights
+combined_forecasts_h1 <- weights[1] + weights[2] * arima_forecasts$`1` + weights[3] *dyn_forecasts$`1` + weights[4] * nnar_forecasts$`1` + weights[5] * rf_forecasts$`1` + weights[6] * nnarx_forecasts$`1` + weights[7] * xgb_forecasts$`1`
+
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h1 <- accuracy(combined_forecasts_h1, true_values$`1`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h1)
+
+accuracy(dyn_forecasts$`1`,true_values$`1`)
+```
+
+## h=3
+* Used same weight calculated as
+```{r}
+# # Linear regression model LSE3: With intercept
+ model_LSE3 <- lm(true_values$`3` ~ arima_forecasts$`3` + dyn_forecasts$`3` + nnar_forecasts$`3` + rf_forecasts$`3` + nnarx_forecasts$`3` + xgb_forecasts$`3`)
+#
+# # Get coefficients
+coefficients_LSE3 <- coef(model_LSE3)
+#
+# # Extract weights
+w0_LSE3 <- coefficients_LSE3[1]
+w1_LSE3 <- coefficients_LSE3[2]
+w2_LSE3 <- coefficients_LSE3[3]
+w3_LSE3 <- coefficients_LSE3[4]
+w4_LSE3 <- coefficients_LSE3[5]
+w5_LSE3 <- coefficients_LSE3[6]
+w6_LSE3 <- coefficients_LSE3[7]
+#
+# # Sum of weights
+sum_weights <- sum(w0_LSE3, w1_LSE3, w2_LSE3, w3_LSE3, w4_LSE3, w5_LSE3, w6_LSE3)
+#
+# # Ensure positive weights and sum equal to 1
+weights <- c(w0_LSE3, w1_LSE3, w2_LSE3, w3_LSE3, w4_LSE3, w5_LSE3, w6_LSE3)
+weights <- pmax(0, weights) # Ensure positive weights
+weights <- weights / sum(weights) # Normalize weights to sum up to 1
+
+# Combine forecasts using estimated weights
+combined_forecast_h3 <- weights[1] + weights[2] * arima_forecasts$`3` + weights[3] * dyn_forecasts$`3` + weights[4] * nnar_forecasts$`3` + weights[5] * rf_forecasts$`3` + weights[6] * nnarx_forecasts$`3` + weights[7] * xgb_forecasts$`3`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h3 <- accuracy(combined_forecast_h3, true_values$`3`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h3)
+
+accuracy(dyn_forecasts$`3`,true_values$`3`)
+```
+
+## h=6
+```{r}
+model_LSE6 <- lm(true_values$`6` ~ arima_forecasts$`6` + dyn_forecasts$`6` + nnar_forecasts$`6` + rf_forecasts$`6` + nnarx_forecasts$`6` + xgb_forecasts$`6`)
+
+# Get coefficients
+coefficients_LSE6 <- coef(model_LSE6)
+
+# Extract weights
+w0_LSE6 <- coefficients_LSE6[1]
+w1_LSE6 <- coefficients_LSE6[2]
+w2_LSE6 <- coefficients_LSE6[3]
+w3_LSE6 <- coefficients_LSE6[4]
+w4_LSE6 <- coefficients_LSE6[5]
+w5_LSE6 <- coefficients_LSE6[6]
+w6_LSE6 <- coefficients_LSE6[7]
+
+# Sum of weights
+sum_weights <- sum(w0_LSE6, w1_LSE6, w2_LSE6, w3_LSE6, w4_LSE6, w5_LSE6, w6_LSE6)
+
+# Ensure positive weights and sum equal to 1
+weights <- c(w0_LSE6, w1_LSE6, w2_LSE6, w3_LSE6, w4_LSE6, w5_LSE6, w6_LSE6)
+weights <- pmax(0, weights) # Ensure positive weights
+weights <- weights / sum(weights) # Normalize weights to sum up to 1
+
+# Combine forecasts using estimated weights
+combined_forecast_h6 <- weights[1] + weights[2] * arima_forecasts$`6` + weights[3] * dyn_forecasts$`6` + weights[4] * nnar_forecasts$`6` + weights[5] * rf_forecasts$`6` + weights[6] * nnarx_forecasts$`6` + weights[7] * xgb_forecasts$`6`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h6 <- accuracy(combined_forecast_h6, true_values$`6`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h6)
+accuracy(dyn_forecasts$`6`,true_values$`6`)
+```
+
+## h=12
+```{r}
+model_LSE12 <- lm(true_values$`12` ~ arima_forecasts$`12` + dyn_forecasts$`12` + nnar_forecasts$`12` + rf_forecasts$`12` + nnarx_forecasts$`12` + xgb_forecasts$`12`)
+
+# Get coefficients
+coefficients_LSE12 <- coef(model_LSE12)
+
+# Extract weights
+w0_LSE12 <- coefficients_LSE12[1]
+w1_LSE12 <- coefficients_LSE12[2]
+w2_LSE12 <- coefficients_LSE12[3]
+w3_LSE12 <- coefficients_LSE12[4]
+w4_LSE12 <- coefficients_LSE12[5]
+w5_LSE12 <- coefficients_LSE12[6]
+w6_LSE12 <- coefficients_LSE12[7]
+
+# Sum of weights
+sum_weights <- sum(w0_LSE12, w1_LSE12, w2_LSE12, w3_LSE12, w4_LSE12, w5_LSE12, w6_LSE12)
+
+# Ensure positive weights and sum equal to 1
+weights <- c(w0_LSE12, w1_LSE12, w2_LSE12, w3_LSE12, w4_LSE12, w5_LSE12, w6_LSE12)
+weights <- pmax(0, weights) # Ensure positive weights
+weights <- weights / sum(weights) # Normalize weights to sum up to 1
+
+# Combine forecasts using estimated weights
+combined_forecast_h12 <- weights[1] + weights[2] * arima_forecasts$`12` + weights[3] * dyn_forecasts$`12` + weights[4] * nnar_forecasts$`12` + weights[5] * rf_forecasts$`12` + weights[6] * nnarx_forecasts$`12` + weights[7] * xgb_forecasts$`12`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h12 <- accuracy(combined_forecast_h12, true_values$`12`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h12)
+accuracy(dyn_forecasts$`12`,true_values$`12`)
+```
+# Ordinary Least Squares (OLS) regression
+# Combination of all 6 models
+## h=1
+
+```{r}
+# Linear regression model LSE1: With intercept
+model_LSE1 <- lm(true_values$`1` ~ arima_forecasts$`1` + dyn_forecasts$`1` + nnar_forecasts$`1` + rf_forecasts$`1` + nnarx_forecasts$`1` + xgb_forecasts$`1`)
+
+# Get coefficients
+coefficients_LSE1 <- coef(model_LSE1)
+
+# Extract weights
+w0_LSE1 <- coefficients_LSE1[1]
+w1_LSE1 <- coefficients_LSE1[2]
+w2_LSE1 <- coefficients_LSE1[3]
+w3_LSE1 <- coefficients_LSE1[4]
+w4_LSE1 <- coefficients_LSE1[5]
+w5_LSE1 <- coefficients_LSE1[6]
+w6_LSE1 <- coefficients_LSE1[7]
+
+
+# Combine forecasts using estimated weights
+combinedo_forecasts_h1 <- w0_LSE1 + w1_LSE1 * arima_forecasts$`1` + w2_LSE1 *dyn_forecasts$`1` + w3_LSE1 * nnar_forecasts$`1` + w4_LSE1 * rf_forecasts$`1` + w5_LSE1 * nnarx_forecasts$`1` + w6_LSE1 * xgb_forecasts$`1`
+
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h1 <- accuracy(combinedo_forecasts_h1, true_values$`1`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h1)
+
+accuracy(dyn_forecasts$`1`,true_values$`1`)
+```
+## h=3
+```{r}
+# Linear regression model LSE1: With intercept
+model_LSE1 <- lm(true_values$`3` ~ arima_forecasts$`3` + dyn_forecasts$`3` + nnar_forecasts$`3` + rf_forecasts$`3` + nnarx_forecasts$`3` + xgb_forecasts$`3`)
+
+# Get coefficients
+coefficients_LSE1 <- coef(model_LSE1)
+
+# Extract weights
+w0_LSE1 <- coefficients_LSE1[1]
+w1_LSE1 <- coefficients_LSE1[2]
+w2_LSE1 <- coefficients_LSE1[3]
+w3_LSE1 <- coefficients_LSE1[4]
+w4_LSE1 <- coefficients_LSE1[5]
+w5_LSE1 <- coefficients_LSE1[6]
+w6_LSE1 <- coefficients_LSE1[7]
+
+# Combine forecasts using estimated weights
+combinedo_forecasts_h3 <- w0_LSE1 + w1_LSE1 * arima_forecasts$`3` + w2_LSE1 * dyn_forecasts$`3` + w3_LSE1 * nnar_forecasts$`3` + w4_LSE1 * rf_forecasts$`3` + w5_LSE1 * nnarx_forecasts$`3` + w6_LSE1 * xgb_forecasts$`3`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h3 <- accuracy(combinedo_forecasts_h3, true_values$`3`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h3)
+
+# Compute accuracy of dyn_forecasts for horizon 3
+accuracy_dyn_h3 <- accuracy(dyn_forecasts$`3`, true_values$`3`)
+print(accuracy_dyn_h3)
+
+```
+
+## h=6
+```{r}
+# Linear regression model LSE1: With intercept
+model_LSE1 <- lm(true_values$`6` ~ arima_forecasts$`6` + dyn_forecasts$`6` + nnar_forecasts$`6` + rf_forecasts$`6` + nnarx_forecasts$`6` + xgb_forecasts$`6`)
+
+# Get coefficients
+coefficients_LSE1 <- coef(model_LSE1)
+
+# Extract weights
+w0_LSE1 <- coefficients_LSE1[1]
+w1_LSE1 <- coefficients_LSE1[2]
+w2_LSE1 <- coefficients_LSE1[3]
+w3_LSE1 <- coefficients_LSE1[4]
+w4_LSE1 <- coefficients_LSE1[5]
+w5_LSE1 <- coefficients_LSE1[6]
+w6_LSE1 <- coefficients_LSE1[7]
+
+# Combine forecasts using estimated weights
+combinedo_forecasts_h6 <- w0_LSE1 + w1_LSE1 * arima_forecasts$`6` + w2_LSE1 * dyn_forecasts$`6` + w3_LSE1 * nnar_forecasts$`6` + w4_LSE1 * rf_forecasts$`6` + w5_LSE1 * nnarx_forecasts$`6` + w6_LSE1 * xgb_forecasts$`6`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h6 <- accuracy(combinedo_forecasts_h6, true_values$`6`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h6)
+
+# Compute accuracy of dyn_forecasts for horizon 6
+accuracy_dyn_h6 <- accuracy(dyn_forecasts$`6`, true_values$`6`)
+print(accuracy_dyn_h6)
+
+```
+
+## h=12
+
+```{r}
+# Linear regression model LSE1: With intercept
+model_LSE1 <- lm(true_values$`12` ~ arima_forecasts$`12` + dyn_forecasts$`12` + nnar_forecasts$`12` + rf_forecasts$`12` + nnarx_forecasts$`12` + xgb_forecasts$`12`)
+
+# Get coefficients
+coefficients_LSE1 <- coef(model_LSE1)
+
+# Extract weights
+w0_LSE1 <- coefficients_LSE1[1]
+w1_LSE1 <- coefficients_LSE1[2]
+w2_LSE1 <- coefficients_LSE1[3]
+w3_LSE1 <- coefficients_LSE1[4]
+w4_LSE1 <- coefficients_LSE1[5]
+w5_LSE1 <- coefficients_LSE1[6]
+w6_LSE1 <- coefficients_LSE1[7]
+
+# Combine forecasts using estimated weights
+combinedo_forecasts_h12 <- w0_LSE1 + w1_LSE1 * arima_forecasts$`12` + w2_LSE1 * dyn_forecasts$`12` + w3_LSE1 * nnar_forecasts$`12` + w4_LSE1 * rf_forecasts$`12` + w5_LSE1 * nnarx_forecasts$`12` + w6_LSE1 * xgb_forecasts$`12`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h12 <- accuracy(combinedo_forecasts_h12, true_values$`12`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h12)
+
+# Compute accuracy of dyn_forecasts for horizon 12
+accuracy_dyn_h12 <- accuracy(dyn_forecasts$`12`, true_values$`12`)
+print(accuracy_dyn_h12)
+
+
+```
+
+#Combination(Dyn, NNAR, XGBoost)
+##h=1
+```{r}
+# Linear regression model LSE1: With intercept
+model_LSE1 <- lm(true_values$`1` ~ dyn_forecasts$`1` + nnar_forecasts$`1` + xgb_forecasts$`1`)
+
+# Get coefficients
+coefficients_LSE1 <- coef(model_LSE1)
+
+# Extract weights
+w0_LSE1 <- coefficients_LSE1[1]
+w1_LSE1 <- coefficients_LSE1[2]
+w2_LSE1 <- coefficients_LSE1[3]
+w3_LSE1 <- coefficients_LSE1[4]
+
+# Combine forecasts using estimated weights
+combined_dnx_forecasts_h1 <- w0_LSE1 + w1_LSE1 * dyn_forecasts$`1` + w2_LSE1 * nnar_forecasts$`1` + w3_LSE1 * xgb_forecasts$`1`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h1 <- accuracy(combined_dnx_forecasts_h1, true_values$`1`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h1)
+
+# Compute accuracy of dynamic forecasts for horizon 1
+accuracy_dyn_h1 <- accuracy(dyn_forecasts$`1`, true_values$`1`)
+print(accuracy_dyn_h1)
+
+# Compute accuracy of NNAR forecasts for horizon 1
+accuracy_nnar_h1 <- accuracy(nnar_forecasts$`1`, true_values$`1`)
+print(accuracy_nnar_h1)
+
+# Compute accuracy of XGBoost forecasts for horizon 1
+accuracy_xgb_h1 <- accuracy(xgb_forecasts$`1`, true_values$`1`)
+print(accuracy_xgb_h1)
+
+```
+
+##h=3
+```{r}
+# Linear regression model LSE3: With intercept
+model_LSE3 <- lm(true_values$`3` ~ dyn_forecasts$`3` + nnar_forecasts$`3` + xgb_forecasts$`3`)
+
+# Get coefficients
+coefficients_LSE3 <- coef(model_LSE3)
+
+# Extract weights
+w0_LSE3 <- coefficients_LSE3[1]
+w1_LSE3 <- coefficients_LSE3[2]
+w2_LSE3 <- coefficients_LSE3[3]
+w3_LSE3 <- coefficients_LSE3[4]
+
+# Combine forecasts using estimated weights
+combined_dnx_forecasts_h3 <- w0_LSE3 + w1_LSE3 * dyn_forecasts$`3` + w2_LSE3 * nnar_forecasts$`3` + w3_LSE3 * xgb_forecasts$`3`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h3 <- accuracy(combined_dnx_forecasts_h3, true_values$`3`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h3)
+
+# Compute accuracy of dynamic forecasts for horizon 3
+accuracy_dyn_h3 <- accuracy(dyn_forecasts$`3`, true_values$`3`)
+print(accuracy_dyn_h3)
+
+# Compute accuracy of NNAR forecasts for horizon 3
+accuracy_nnar_h3 <- accuracy(nnar_forecasts$`3`, true_values$`3`)
+print(accuracy_nnar_h3)
+
+# Compute accuracy of XGBoost forecasts for horizon 3
+accuracy_xgb_h3 <- accuracy(xgb_forecasts$`3`, true_values$`3`)
+print(accuracy_xgb_h3)
+
+```
+##h=6
+```{r}
+# Linear regression model LSE6: With intercept
+model_LSE6 <- lm(true_values$`6` ~ dyn_forecasts$`6` + nnar_forecasts$`6` + xgb_forecasts$`6`)
+
+# Get coefficients
+coefficients_LSE6 <- coef(model_LSE6)
+
+# Extract weights
+w0_LSE6 <- coefficients_LSE6[1]
+w1_LSE6 <- coefficients_LSE6[2]
+w2_LSE6 <- coefficients_LSE6[3]
+w3_LSE6 <- coefficients_LSE6[4]
+
+# Combine forecasts using estimated weights
+combined_dnx_forecasts_h6 <- w0_LSE6 + w1_LSE6 * dyn_forecasts$`6` + w2_LSE6 * nnar_forecasts$`6` + w3_LSE6 * xgb_forecasts$`6`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h6 <- accuracy(combined_dnx_forecasts_h6, true_values$`6`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h6)
+
+# Compute accuracy of dynamic forecasts for horizon 6
+accuracy_dyn_h6 <- accuracy(dyn_forecasts$`6`, true_values$`6`)
+print(accuracy_dyn_h6)
+
+# Compute accuracy of NNAR forecasts for horizon 6
+accuracy_nnar_h6 <- accuracy(nnar_forecasts$`6`, true_values$`6`)
+print(accuracy_nnar_h6)
+
+# Compute accuracy of XGBoost forecasts for horizon 6
+accuracy_xgb_h6 <- accuracy(xgb_forecasts$`6`, true_values$`6`)
+print(accuracy_xgb_h6)
+
+```
+
+##h=12
+
+```{r}
+# Linear regression model LSE1: With intercept
+model_LSE1 <- lm(true_values$`12` ~ dyn_forecasts$`12` + nnar_forecasts$`12` + xgb_forecasts$`12`)
+
+# Get coefficients
+coefficients_LSE1 <- coef(model_LSE1)
+
+# Extract weights
+w0_LSE1 <- coefficients_LSE1[1]
+w1_LSE1 <- coefficients_LSE1[2]
+w2_LSE1 <- coefficients_LSE1[3]
+w3_LSE1 <- coefficients_LSE1[4]
+
+# Combine forecasts using estimated weights
+combined_dnx_forecasts_h12 <- w0_LSE1 + w1_LSE1 * dyn_forecasts$`12` + w2_LSE1 * nnar_forecasts$`12` + w3_LSE1 * xgb_forecasts$`12`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h12 <- accuracy(combined_dnx_forecasts_h12, true_values$`12`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h12)
+
+# Compute accuracy of dynamic forecasts for horizon 12
+accuracy_dyn_h12 <- accuracy(dyn_forecasts$`12`, true_values$`12`)
+print(accuracy_dyn_h12)
+
+# Compute accuracy of NNAR forecasts for horizon 12
+accuracy_nnar_h12 <- accuracy(nnar_forecasts$`12`, true_values$`12`)
+print(accuracy_nnar_h12)
+
+# Compute accuracy of XGBoost forecasts for horizon 12
+accuracy_xgb_h12 <- accuracy(xgb_forecasts$`12`, true_values$`12`)
+print(accuracy_xgb_h12)
+
+```
+
+# Comination of (Arima,Dyn,NNAR,NNARX)
+
+## h=1
+```{r}
+# Linear regression model LSE1: With intercept
+model_LSE1 <- lm(true_values$`1` ~ arima_forecasts$`1` + dyn_forecasts$`1` + nnar_forecasts$`1` + nnarx_forecasts$`1`)
+
+# Get coefficients
+coefficients_LSE1 <- coef(model_LSE1)
+
+# Extract weights
+w0_LSE1 <- coefficients_LSE1[1]
+w1_LSE1 <- coefficients_LSE1[2]
+w2_LSE1 <- coefficients_LSE1[3]
+w3_LSE1 <- coefficients_LSE1[4]
+w4_LSE1 <- coefficients_LSE1[5]
+
+# Combine forecasts using estimated weights
+combined_adnn_forecasts_h1 <- w0_LSE1 + w1_LSE1 * arima_forecasts$`1` + w2_LSE1 * dyn_forecasts$`1` + w3_LSE1 * nnar_forecasts$`1` + w4_LSE1 * nnarx_forecasts$`1`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h1 <- accuracy(combined_adnn_forecasts_h1, true_values$`1`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h1)
+
+# Compute accuracy of ARIMA forecasts for horizon 1
+accuracy_arima_h1 <- accuracy(arima_forecasts$`1`, true_values$`1`)
+print(accuracy_arima_h1)
+
+# Compute accuracy of dynamic forecasts for horizon 1
+accuracy_dyn_h1 <- accuracy(dyn_forecasts$`1`, true_values$`1`)
+print(accuracy_dyn_h1)
+
+# Compute accuracy of NNAR forecasts for horizon 1
+accuracy_nnar_h1 <- accuracy(nnar_forecasts$`1`, true_values$`1`)
+print(accuracy_nnar_h1)
+
+# Compute accuracy of NNARx forecasts for horizon 1
+accuracy_nnarx_h1 <- accuracy(nnarx_forecasts$`1`, true_values$`1`)
+print(accuracy_nnarx_h1)
+
+```
+
+## h=3
+```{r}
+# Linear regression model LSE3: With intercept
+model_LSE3 <- lm(true_values$`3` ~ arima_forecasts$`3` + dyn_forecasts$`3` + nnar_forecasts$`3` + nnarx_forecasts$`3`)
+
+# Get coefficients
+coefficients_LSE3 <- coef(model_LSE3)
+
+# Extract weights
+w0_LSE3 <- coefficients_LSE3[1]
+w1_LSE3 <- coefficients_LSE3[2]
+w2_LSE3 <- coefficients_LSE3[3]
+w3_LSE3 <- coefficients_LSE3[4]
+w4_LSE3 <- coefficients_LSE3[5]
+
+# Combine forecasts using estimated weights
+combined_adnn_forecasts_h3 <- w0_LSE3 + w1_LSE3 * arima_forecasts$`3` + w2_LSE3 * dyn_forecasts$`3` + w3_LSE3 * nnar_forecasts$`3` + w4_LSE3 * nnarx_forecasts$`3`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h3 <- accuracy(combined_adnn_forecasts_h3, true_values$`3`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h3)
+
+# Compute accuracy of ARIMA forecasts for horizon 3
+accuracy_arima_h3 <- accuracy(arima_forecasts$`3`, true_values$`3`)
+print(accuracy_arima_h3)
+
+# Compute accuracy of dynamic forecasts for horizon 3
+accuracy_dyn_h3 <- accuracy(dyn_forecasts$`3`, true_values$`3`)
+print(accuracy_dyn_h3)
+
+# Compute accuracy of NNAR forecasts for horizon 3
+accuracy_nnar_h3 <- accuracy(nnar_forecasts$`3`, true_values$`3`)
+print(accuracy_nnar_h3)
+
+# Compute accuracy of NNARx forecasts for horizon 3
+accuracy_nnarx_h3 <- accuracy(nnarx_forecasts$`3`, true_values$`3`)
+print(accuracy_nnarx_h3)
+
+```
+
+##h=6
+
+```{r}
+# Linear regression model LSE6: With intercept
+model_LSE6 <- lm(true_values$`6` ~ arima_forecasts$`6` + dyn_forecasts$`6` + nnar_forecasts$`6` + nnarx_forecasts$`6`)
+
+# Get coefficients
+coefficients_LSE6 <- coef(model_LSE6)
+
+# Extract weights
+w0_LSE6 <- coefficients_LSE6[1]
+w1_LSE6 <- coefficients_LSE6[2]
+w2_LSE6 <- coefficients_LSE6[3]
+w3_LSE6 <- coefficients_LSE6[4]
+w4_LSE6 <- coefficients_LSE6[5]
+
+# Combine forecasts using estimated weights
+combined_adnn_forecasts_h6 <- w0_LSE6 + w1_LSE6 * arima_forecasts$`6` + w2_LSE6 * dyn_forecasts$`6` + w3_LSE6 * nnar_forecasts$`6` + w4_LSE6 * nnarx_forecasts$`6`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h6 <- accuracy(combined_adnn_forecasts_h6, true_values$`6`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h6)
+
+# Compute accuracy of ARIMA forecasts for horizon 6
+accuracy_arima_h6 <- accuracy(arima_forecasts$`6`, true_values$`6`)
+print(accuracy_arima_h6)
+
+# Compute accuracy of dynamic forecasts for horizon 6
+accuracy_dyn_h6 <- accuracy(dyn_forecasts$`6`, true_values$`6`)
+print(accuracy_dyn_h6)
+
+# Compute accuracy of NNAR forecasts for horizon 6
+accuracy_nnar_h6 <- accuracy(nnar_forecasts$`6`, true_values$`6`)
+print(accuracy_nnar_h6)
+
+# Compute accuracy of NNARx forecasts for horizon 6
+accuracy_nnarx_h6 <- accuracy(nnarx_forecasts$`6`, true_values$`6`)
+print(accuracy_nnarx_h6)
+
+```
+
+## h=12
+```{r}
+# Linear regression model LSE12: With intercept
+model_LSE12 <- lm(true_values$`12` ~ arima_forecasts$`12` + dyn_forecasts$`12` + nnar_forecasts$`12` + nnarx_forecasts$`12`)
+
+# Get coefficients
+coefficients_LSE12 <- coef(model_LSE12)
+
+# Extract weights
+w0_LSE12 <- coefficients_LSE12[1]
+w1_LSE12 <- coefficients_LSE12[2]
+w2_LSE12 <- coefficients_LSE12[3]
+w3_LSE12 <- coefficients_LSE12[4]
+w4_LSE12 <- coefficients_LSE12[5]
+
+# Combine forecasts using estimated weights
+combined_adnn_forecasts_h12 <- w0_LSE12 + w1_LSE12 * arima_forecasts$`12` + w2_LSE12 * dyn_forecasts$`12` + w3_LSE12 * nnar_forecasts$`12` + w4_LSE12 * nnarx_forecasts$`12`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h12 <- accuracy(combined_adnn_forecasts_h12, true_values$`12`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h12)
+
+# Compute accuracy of ARIMA forecasts for horizon 12
+accuracy_arima_h12 <- accuracy(arima_forecasts$`12`, true_values$`12`)
+print(accuracy_arima_h12)
+
+# Compute accuracy of dynamic forecasts for horizon 12
+accuracy_dyn_h12 <- accuracy(dyn_forecasts$`12`, true_values$`12`)
+print(accuracy_dyn_h12)
+
+# Compute accuracy of NNAR forecasts for horizon 12
+accuracy_nnar_h12 <- accuracy(nnar_forecasts$`12`, true_values$`12`)
+print(accuracy_nnar_h12)
+
+# Compute accuracy of NNARx forecasts for horizon 12
+accuracy_nnarx_h12 <- accuracy(nnarx_forecasts$`12`, true_values$`12`)
+print(accuracy_nnarx_h12)
+
+```
+# Cominatiob (Dyn + NNAR)
+
+## h=1
+
+```{r}
+# Linear regression model LSE1: With intercept
+model_LSE1 <- lm(true_values$`1` ~ dyn_forecasts$`1` + nnar_forecasts$`1`)
+
+# Get coefficients
+coefficients_LSE1 <- coef(model_LSE1)
+
+# Extract weights
+w0_LSE1 <- coefficients_LSE1[1]
+w1_LSE1 <- coefficients_LSE1[2]
+w2_LSE1 <- coefficients_LSE1[3]
+
+# Combine forecasts using estimated weights
+combined_dnx_forecasts_h1 <- w0_LSE1 + w1_LSE1 * dyn_forecasts$`1` + w2_LSE1 * nnar_forecasts$`1`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h1 <- accuracy(combined_dnx_forecasts_h1, true_values$`1`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h1)
+
+# Compute accuracy of dynamic forecasts for horizon 1
+accuracy_dyn_h1 <- accuracy(dyn_forecasts$`1`, true_values$`1`)
+print(accuracy_dyn_h1)
+
+# Compute accuracy of NNAR forecasts for horizon 1
+accuracy_nnar_h1 <- accuracy(nnar_forecasts$`1`, true_values$`1`)
+print(accuracy_nnar_h1)
+
+
+
+```
+
+## h=3
+
+```{r}
+# Linear regression model LSE1 for horizon 3: With intercept
+model_LSE1_h3 <- lm(true_values$`3` ~ dyn_forecasts$`3` + nnar_forecasts$`3`)
+
+# Get coefficients
+coefficients_LSE1_h3 <- coef(model_LSE1_h3)
+
+# Extract weights
+w0_LSE1_h3 <- coefficients_LSE1_h3[1]
+w1_LSE1_h3 <- coefficients_LSE1_h3[2]
+w2_LSE1_h3 <- coefficients_LSE1_h3[3]
+
+# Combine forecasts using estimated weights
+combined_dnx_forecasts_h3 <- w0_LSE1_h3 + w1_LSE1_h3 * dyn_forecasts$`3` + w2_LSE1_h3 * nnar_forecasts$`3`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h3 <- accuracy(combined_dnx_forecasts_h3, true_values$`3`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h3)
+
+# Compute accuracy of dynamic forecasts for horizon 3
+accuracy_dyn_h3 <- accuracy(dyn_forecasts$`3`, true_values$`3`)
+print(accuracy_dyn_h3)
+
+# Compute accuracy of NNAR forecasts for horizon 3
+accuracy_nnar_h3 <- accuracy(nnar_forecasts$`3`, true_values$`3`)
+print(accuracy_nnar_h3)
+
+# Optionally, you can also compute and print the accuracy of XGBoost forecasts for horizon 3
+# Even though we are not using XGBoost in the combined forecast
+accuracy_xgb_h3 <- accuracy(xgb_forecasts$`3`, true_values$`3`)
+print(accuracy_xgb_h3)
+
+```
+
+## h=6
+
+```{r}
+# Linear regression model LSE1 for horizon 6: With intercept
+model_LSE1_h6 <- lm(true_values$`6` ~ dyn_forecasts$`6` + nnar_forecasts$`6`)
+
+# Get coefficients
+coefficients_LSE1_h6 <- coef(model_LSE1_h6)
+
+# Extract weights
+w0_LSE1_h6 <- coefficients_LSE1_h6[1]
+w1_LSE1_h6 <- coefficients_LSE1_h6[2]
+w2_LSE1_h6 <- coefficients_LSE1_h6[3]
+
+# Combine forecasts using estimated weights
+combined_dnx_forecasts_h6 <- w0_LSE1_h6 + w1_LSE1_h6 * dyn_forecasts$`6` + w2_LSE1_h6 * nnar_forecasts$`6`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h6 <- accuracy(combined_dnx_forecasts_h6, true_values$`6`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h6)
+
+# Compute accuracy of dynamic forecasts for horizon 6
+accuracy_dyn_h6 <- accuracy(dyn_forecasts$`6`, true_values$`6`)
+print(accuracy_dyn_h6)
+
+# Compute accuracy of NNAR forecasts for horizon 6
+accuracy_nnar_h6 <- accuracy(nnar_forecasts$`6`, true_values$`6`)
+print(accuracy_nnar_h6)
+
+# Optionally, you can also compute and print the accuracy of XGBoost forecasts for horizon 6
+# Even though we are not using XGBoost in the combined forecast
+accuracy_xgb_h6 <- accuracy(xgb_forecasts$`6`, true_values$`6`)
+print(accuracy_xgb_h6)
+
+```
+
+## h=12
+
+```{r}
+# Linear regression model LSE1 for horizon 12: With intercept
+model_LSE1_h12 <- lm(true_values$`12` ~ dyn_forecasts$`12` + nnar_forecasts$`12`)
+
+# Get coefficients
+coefficients_LSE1_h12 <- coef(model_LSE1_h12)
+
+# Extract weights
+w0_LSE1_h12 <- coefficients_LSE1_h12[1]
+w1_LSE1_h12 <- coefficients_LSE1_h12[2]
+w2_LSE1_h12 <- coefficients_LSE1_h12[3]
+
+# Combine forecasts using estimated weights
+combined_dnx_forecasts_h12 <- w0_LSE1_h12 + w1_LSE1_h12 * dyn_forecasts$`12` + w2_LSE1_h12 * nnar_forecasts$`12`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h12 <- accuracy(combined_dnx_forecasts_h12, true_values$`12`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h12)
+
+# Compute accuracy of dynamic forecasts for horizon 12
+accuracy_dyn_h12 <- accuracy(dyn_forecasts$`12`, true_values$`12`)
+print(accuracy_dyn_h12)
+
+# Compute accuracy of NNAR forecasts for horizon 12
+accuracy_nnar_h12 <- accuracy(nnar_forecasts$`12`, true_values$`12`)
+print(accuracy_nnar_h12)
+
+# Optionally, you can also compute and print the accuracy of XGBoost forecasts for horizon 12
+# Even though we are not using XGBoost in the combined forecast
+accuracy_xgb_h12 <- accuracy(xgb_forecasts$`12`, true_values$`12`)
+print(accuracy_xgb_h12)
+
+```
+
+# (Dyn+ XGBoost)
+## h=12
+```{r}
+# Linear regression model LSE1 for horizon 12: With intercept
+model_LSE1_h12 <- lm(true_values$`12` ~ dyn_forecasts$`12` + xgb_forecasts$`12`)
+
+# Get coefficients
+coefficients_LSE1_h12 <- coef(model_LSE1_h12)
+
+# Extract weights
+w0_LSE1_h12 <- coefficients_LSE1_h12[1]
+w1_LSE1_h12 <- coefficients_LSE1_h12[2]
+w2_LSE1_h12 <- coefficients_LSE1_h12[3]
+
+# Combine forecasts using estimated weights
+combined_dx_forecasts_h12 <- w0_LSE1_h12 + w1_LSE1_h12 * dyn_forecasts$`12` + w2_LSE1_h12 * xgb_forecasts$`12`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h12 <- accuracy(combined_dx_forecasts_h12, true_values$`12`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h12)
+
+# Compute accuracy of dynamic forecasts for horizon 12
+accuracy_dyn_h12 <- accuracy(dyn_forecasts$`12`, true_values$`12`)
+print(accuracy_dyn_h12)
+
+# Compute accuracy of XGBoost forecasts for horizon 12
+accuracy_xgb_h12 <- accuracy(xgb_forecasts$`12`, true_values$`12`)
+print(accuracy_xgb_h12)
+
+```
+
+# Optim Function
+# Dyn + XGBoost
+## h=1
+
+```{r}
+# Objective function for constrained optimization
+objective_function <- function(weights, forecasts, actual_values) {
+  combined_forecasts <- weights[1] * forecasts[[1]] + weights[2] * forecasts[[2]]
+  sum((combined_forecasts - actual_values) ^ 2)
+}
+
+# Initial weights (e.g., equal weights)
+initial_weights <- c(0.5, 0.5)
+
+# Forecasts for horizon 1
+forecasts <- list(dyn_forecasts$`1`, xgb_forecast$`1`)
+
+# Perform constrained optimization
+result <- optim(
+  par = initial_weights,
+  fn = objective_function,
+  forecasts = forecasts,
+  actual_values = true_values$`1`,
+  method = "L-BFGS-B",
+  lower = c(0, 0),  # Lower bounds for weights (non-negative)
+  upper = c(1, 1)   # Upper bounds for weights (optional)
+)
+
+# Extract optimal weights
+optimal_weights <- result$par
+
+# Combine forecasts using estimated weights
+combined_dx_forecasts_h1 <- optimal_weights[1] * dyn_forecasts$`1` + optimal_weights[2] * xgb_forecast$`1`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h1 <- accuracy(combined_dx_forecasts_h1, true_values$`1`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h1)
+
+# Compute accuracy of dynamic forecasts for horizon 1
+accuracy_dyn_h1 <- accuracy(dyn_forecasts$`1`, true_values$`1`)
+print(accuracy_dyn_h1)
+
+# Compute accuracy of XGBoost forecasts for horizon 1
+accuracy_xgb_h1 <- accuracy(xgb_forecast$`1`, true_values$`1`)
+print(accuracy_xgb_h1)
+
+```
+## h=3
+
+```{r}
+# Objective function for constrained optimization
+objective_function <- function(weights, forecasts, actual_values) {
+  combined_forecasts <- weights[1] * forecasts[[1]] + weights[2] * forecasts[[2]]
+  sum((combined_forecasts - actual_values) ^ 2)
+}
+
+# Initial weights (e.g., equal weights)
+initial_weights <- c(0.5, 0.5)
+
+# Forecasts for horizon 3
+forecasts <- list(dyn_forecasts$`3`, xgb_forecasts$`3`)
+
+# Perform constrained optimization
+result <- optim(
+  par = initial_weights,
+  fn = objective_function,
+  forecasts = forecasts,
+  actual_values = true_values$`3`,
+  method = "L-BFGS-B",
+  lower = c(0, 0),  # Lower bounds for weights (non-negative)
+  upper = c(1, 1)   # Upper bounds for weights (optional)
+)
+
+# Extract optimal weights
+optimal_weights <- result$par
+
+# Combine forecasts using estimated weights
+combined_dx_forecasts_h3 <- optimal_weights[1] * dyn_forecasts$`3` + optimal_weights[2] * xgb_forecasts$`3`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h3 <- accuracy(combined_dx_forecasts_h3, true_values$`3`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h3)
+
+# Compute accuracy of dynamic forecasts for horizon 3
+accuracy_dyn_h3 <- accuracy(dyn_forecasts$`3`, true_values$`3`)
+print(accuracy_dyn_h3)
+
+# Compute accuracy of XGBoost forecasts for horizon 3
+accuracy_xgb_h3 <- accuracy(xgb_forecasts$`3`, true_values$`3`)
+print(accuracy_xgb_h3)
+
+```
+## h=6
+
+```{r}
+# Objective function for constrained optimization
+objective_function <- function(weights, forecasts, actual_values) {
+  combined_forecasts <- weights[1] * forecasts[[1]] + weights[2] * forecasts[[2]]
+  sum((combined_forecasts - actual_values) ^ 2)
+}
+
+# Initial weights (e.g., equal weights)
+initial_weights <- c(0.5, 0.5)
+
+# Forecasts for horizon 6
+forecasts <- list(dyn_forecasts$`6`, xgb_forecasts$`6`)
+
+# Perform constrained optimization
+result <- optim(
+  par = initial_weights,
+  fn = objective_function,
+  forecasts = forecasts,
+  actual_values = true_values$`6`,
+  method = "L-BFGS-B",
+  lower = c(0, 0),  # Lower bounds for weights (non-negative)
+  upper = c(1, 1)   # Upper bounds for weights (optional)
+)
+
+# Extract optimal weights
+optimal_weights <- result$par
+
+# Combine forecasts using estimated weights
+combined_dx_forecasts_h6 <- optimal_weights[1] * dyn_forecasts$`6` + optimal_weights[2] * xgb_forecasts$`6`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h6 <- accuracy(combined_dx_forecasts_h6, true_values$`6`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h6)
+
+# Compute accuracy of dynamic forecasts for horizon 6
+accuracy_dyn_h6 <- accuracy(dyn_forecasts$`6`, true_values$`6`)
+print(accuracy_dyn_h6)
+
+# Compute accuracy of XGBoost forecasts for horizon 6
+accuracy_xgb_h6 <- accuracy(xgb_forecast$`6`, true_values$`6`)
+print(accuracy_xgb_h6)
+
+```
+
+## h=12
+
+```{r}
+# Objective function for constrained optimization
+objective_function <- function(weights, forecasts, actual_values) {
+  combined_forecasts <- weights[1] * forecasts[[1]] + weights[2] * forecasts[[2]]
+  sum((combined_forecasts - actual_values) ^ 2)
+}
+
+# Initial weights (e.g., equal weights)
+initial_weights <- c(0.5, 0.5)
+
+# Forecasts for horizon 12
+forecasts <- list(dyn_forecasts$`12`, xgb_forecasts$`12`)
+
+# Perform constrained optimization
+result <- optim(
+  par = initial_weights,
+  fn = objective_function,
+  forecasts = forecasts,
+  actual_values = true_values$`12`,
+  method = "L-BFGS-B",
+  lower = c(0, 0),  # Lower bounds for weights (non-negative)
+  upper = c(1, 1)   # Upper bounds for weights (optional)
+)
+
+# Extract optimal weights
+optimal_weights <- result$par
+
+# Combine forecasts using estimated weights
+combined_dx_forecasts_h12 <- optimal_weights[1] * dyn_forecasts$`12` + optimal_weights[2] * xgb_forecasts$`12`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h12 <- accuracy(combined_dx_forecasts_h12, true_values$`12`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h12)
+
+# Compute accuracy of dynamic forecasts for horizon 12
+accuracy_dyn_h12 <- accuracy(dyn_forecasts$`12`, true_values$`12`)
+print(accuracy_dyn_h12)
+
+# Compute accuracy of XGBoost forecasts for horizon 12
+accuracy_xgb_h12 <- accuracy(xgb_forecasts$`12`, true_values$`12`)
+print(accuracy_xgb_h12)
+
+```
+# Dyn + NNAR
+
+## h=1
+
+```{r}
+# Objective function for constrained optimization
+objective_function <- function(weights, forecasts, actual_values) {
+  combined_forecasts <- weights[1] * forecasts[[1]] + weights[2] * forecasts[[2]]
+  sum((combined_forecasts - actual_values) ^ 2)
+}
+
+# Initial weights (e.g., equal weights)
+initial_weights <- c(0.5, 0.5)
+
+# Forecasts for horizon 1
+forecasts <- list(dyn_forecasts$`1`, nnar_forecasts$`1`)
+
+# Perform constrained optimization
+result <- optim(
+  par = initial_weights,
+  fn = objective_function,
+  forecasts = forecasts,
+  actual_values = true_values$`1`,
+  method = "L-BFGS-B",
+  lower = c(0, 0),  # Lower bounds for weights (non-negative)
+  upper = c(1, 1)   # Upper bounds for weights (optional)
+)
+
+# Extract optimal weights
+optimal_weights <- result$par
+
+# Combine forecasts using estimated weights
+combined_dx_forecasts_h1 <- optimal_weights[1] * dyn_forecasts$`1` + optimal_weights[2] * nnar_forecasts$`1`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h1 <- accuracy(combined_dx_forecasts_h1, true_values$`1`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h1)
+
+# Compute accuracy of dynamic forecasts for horizon 1
+accuracy_dyn_h1 <- accuracy(dyn_forecasts$`1`, true_values$`1`)
+print(accuracy_dyn_h1)
+
+# Compute accuracy of NNAR forecasts for horizon 1
+accuracy_nnar_h1 <- accuracy(nnar_forecasts$`1`, true_values$`1`)
+print(accuracy_nnar_h1)
+
+```
+
+## h=3 
+
+```{r}
+# Objective function for constrained optimization
+objective_function <- function(weights, forecasts, actual_values) {
+  combined_forecasts <- weights[1] * forecasts[[1]] + weights[2] * forecasts[[2]]
+  sum((combined_forecasts - actual_values) ^ 2)
+}
+
+# Initial weights (e.g., equal weights)
+initial_weights <- c(0.5, 0.5)
+
+# Forecasts for horizon 3
+forecasts <- list(dyn_forecasts$`3`, nnar_forecasts$`3`)
+
+# Perform constrained optimization
+result <- optim(
+  par = initial_weights,
+  fn = objective_function,
+  forecasts = forecasts,
+  actual_values = true_values$`3`,
+  method = "L-BFGS-B",
+  lower = c(0, 0),  # Lower bounds for weights (non-negative)
+  upper = c(1, 1)   # Upper bounds for weights (optional)
+)
+
+# Extract optimal weights
+optimal_weights <- result$par
+
+# Combine forecasts using estimated weights
+combined_dx_forecasts_h3 <- optimal_weights[1] * dyn_forecasts$`3` + optimal_weights[2] * nnar_forecasts$`3`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h3 <- accuracy(combined_dx_forecasts_h3, true_values$`3`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h3)
+
+# Compute accuracy of dynamic forecasts for horizon 3
+accuracy_dyn_h3 <- accuracy(dyn_forecasts$`3`, true_values$`3`)
+print(accuracy_dyn_h3)
+
+# Compute accuracy of NNAR forecasts for horizon 3
+accuracy_nnar_h3 <- accuracy(nnar_forecasts$`3`, true_values$`3`)
+print(accuracy_nnar_h3)
+
+```
+
+## h=6
+
+```{r}
+# Objective function for constrained optimization
+objective_function <- function(weights, forecasts, actual_values) {
+  combined_forecasts <- weights[1] * forecasts[[1]] + weights[2] * forecasts[[2]]
+  sum((combined_forecasts - actual_values) ^ 2)
+}
+
+# Initial weights (e.g., equal weights)
+initial_weights <- c(0.5, 0.5)
+
+# Forecasts for horizon 6
+forecasts <- list(dyn_forecasts$`6`, nnar_forecasts$`6`)
+
+# Perform constrained optimization
+result <- optim(
+  par = initial_weights,
+  fn = objective_function,
+  forecasts = forecasts,
+  actual_values = true_values$`6`,
+  method = "L-BFGS-B",
+  lower = c(0, 0),  # Lower bounds for weights (non-negative)
+  upper = c(1, 1)   # Upper bounds for weights (optional)
+)
+
+# Extract optimal weights
+optimal_weights <- result$par
+
+# Combine forecasts using estimated weights
+combined_dx_forecasts_h6 <- optimal_weights[1] * dyn_forecasts$`6` + optimal_weights[2] * nnar_forecasts$`6`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h6 <- accuracy(combined_dx_forecasts_h6, true_values$`6`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h6)
+
+# Compute accuracy of dynamic forecasts for horizon 6
+accuracy_dyn_h6 <- accuracy(dyn_forecasts$`6`, true_values$`6`)
+print(accuracy_dyn_h6)
+
+# Compute accuracy of NNAR forecasts for horizon 6
+accuracy_nnar_h6 <- accuracy(nnar_forecasts$`6`, true_values$`6`)
+print(accuracy_nnar_h6)
+
+```
+## h=12
+
+```{r}
+# Objective function for constrained optimization
+objective_function <- function(weights, forecasts, actual_values) {
+  combined_forecasts <- weights[1] * forecasts[[1]] + weights[2] * forecasts[[2]]
+  sum((combined_forecasts - actual_values) ^ 2)
+}
+
+# Initial weights (e.g., equal weights)
+initial_weights <- c(0.5, 0.5)
+
+# Forecasts for horizon 12
+forecasts <- list(dyn_forecasts$`12`, nnar_forecasts$`12`)
+
+# Perform constrained optimization
+result <- optim(
+  par = initial_weights,
+  fn = objective_function,
+  forecasts = forecasts,
+  actual_values = true_values$`12`,
+  method = "L-BFGS-B",
+  lower = c(0, 0),  # Lower bounds for weights (non-negative)
+  upper = c(1, 1)   # Upper bounds for weights (optional)
+)
+
+# Extract optimal weights
+optimal_weights <- result$par
+
+# Combine forecasts using estimated weights
+combined_dx_forecasts_h12 <- optimal_weights[1] * dyn_forecasts$`12` + optimal_weights[2] * nnar_forecasts$`12`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h12 <- accuracy(combined_dx_forecasts_h12, true_values$`12`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h12)
+
+# Compute accuracy of dynamic forecasts for horizon 12
+accuracy_dyn_h12 <- accuracy(dyn_forecasts$`12`, true_values$`12`)
+print(accuracy_dyn_h12)
+
+# Compute accuracy of NNAR forecasts for horizon 12
+accuracy_nnar_h12 <- accuracy(nnar_forecasts$`12`, true_values$`12`)
+print(accuracy_nnar_h12)
+
+```
+
+# Dyn + NNAR + XGBoost
+## h=1
+
+```{r}
+# Objective function for constrained optimization
+objective_function <- function(weights, forecasts, actual_values) {
+  combined_forecast <- weights[1] * forecasts[[1]] + 
+                       weights[2] * forecasts[[2]] +
+                       weights[3] * forecasts[[3]]
+  sum((combined_forecast - actual_values) ^ 2)
+}
+
+# Initial weights (e.g., equal weights)
+initial_weights <- c(0.33, 0.33, 0.33)
+
+# Forecasts for horizon 1
+forecasts <- list(dyn_forecasts$`1`, nnar_forecasts$`1`, xgb_forecasts$`1`)
+
+# Perform constrained optimization
+result <- optim(
+  par = initial_weights,
+  fn = objective_function,
+  forecasts = forecasts,
+  actual_values = true_values$`1`,
+  method = "L-BFGS-B",
+  lower = c(0, 0, 0),  # Lower bounds for weights (non-negative)
+  upper = c(1, 1, 1)   # Upper bounds for weights (optional)
+)
+
+# Extract optimal weights
+optimal_weights <- result$par
+
+# Combine forecasts using estimated weights
+combined_forecast_h1 <- optimal_weights[1] * dyn_forecasts$`1` + 
+                         optimal_weights[2] * nnar_forecasts$`1` + 
+                         optimal_weights[3] * xgb_forecasts$`1`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h1 <- accuracy(combined_forecast_h1, true_values$`1`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h1)
+
+# Compute accuracy of dynamic forecasts for horizon 1
+accuracy_dyn_h1 <- accuracy(dyn_forecasts$`1`, true_values$`1`)
+print(accuracy_dyn_h1)
+
+# Compute accuracy of NNAR forecasts for horizon 1
+accuracy_nnar_h1 <- accuracy(nnar_forecasts$`1`, true_values$`1`)
+print(accuracy_nnar_h1)
+
+# Compute accuracy of XGBoost forecasts for horizon 1
+accuracy_xgb_h1 <- accuracy(xgb_forecast$`1`, true_values$`1`)
+print(accuracy_xgb_h1)
+
+```
+## h=3 
+
+```{r}
+# Objective function for constrained optimization
+objective_function <- function(weights, forecasts, actual_values) {
+  combined_forecast <- weights[1] * forecasts[[1]] + 
+                       weights[2] * forecasts[[2]] +
+                       weights[3] * forecasts[[3]]
+  sum((combined_forecast - actual_values) ^ 2)
+}
+
+# Initial weights (e.g., equal weights)
+initial_weights <- c(0.33, 0.33, 0.33)
+
+# Forecasts for horizon 3
+forecasts <- list(dyn_forecasts$`3`, nnar_forecasts$`3`, xgb_forecasts$`3`)
+
+# Perform constrained optimization
+result <- optim(
+  par = initial_weights,
+  fn = objective_function,
+  forecasts = forecasts,
+  actual_values = true_values$`3`,
+  method = "L-BFGS-B",
+  lower = c(0, 0, 0),  # Lower bounds for weights (non-negative)
+  upper = c(1, 1, 1)   # Upper bounds for weights (optional)
+)
+
+# Extract optimal weights
+optimal_weights <- result$par
+
+# Combine forecasts using estimated weights
+combined_forecast_h3 <- optimal_weights[1] * dyn_forecasts$`3` + 
+                         optimal_weights[2] * nnar_forecasts$`3` + 
+                         optimal_weights[3] * xgb_forecasts$`3`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h3 <- accuracy(combined_forecast_h3, true_values$`3`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h3)
+
+# Compute accuracy of dynamic forecasts for horizon 3
+accuracy_dyn_h3 <- accuracy(dyn_forecasts$`3`, true_values$`3`)
+print(accuracy_dyn_h3)
+
+# Compute accuracy of NNAR forecasts for horizon 3
+accuracy_nnar_h3 <- accuracy(nnar_forecasts$`3`, true_values$`3`)
+print(accuracy_nnar_h3)
+
+# Compute accuracy of XGBoost forecasts for horizon 3
+accuracy_xgb_h3 <- accuracy(xgb_forecasts$`3`, true_values$`3`)
+print(accuracy_xgb_h3)
+
+```
+
+## h=6
+
+```{r}
+# Objective function for constrained optimization
+objective_function <- function(weights, forecasts, actual_values) {
+  combined_forecast <- weights[1] * forecasts[[1]] + 
+                       weights[2] * forecasts[[2]] +
+                       weights[3] * forecasts[[3]]
+  sum((combined_forecast - actual_values) ^ 2)
+}
+
+# Initial weights (e.g., equal weights)
+initial_weights <- c(0.33, 0.33, 0.33)
+
+# Forecasts for horizon 6
+forecasts <- list(dyn_forecasts$`6`, nnar_forecasts$`6`, xgb_forecasts$`6`)
+
+# Perform constrained optimization
+result <- optim(
+  par = initial_weights,
+  fn = objective_function,
+  forecasts = forecasts,
+  actual_values = true_values$`6`,
+  method = "L-BFGS-B",
+  lower = c(0, 0, 0),  # Lower bounds for weights (non-negative)
+  upper = c(1, 1, 1)   # Upper bounds for weights (optional)
+)
+
+# Extract optimal weights
+optimal_weights <- result$par
+
+# Combine forecasts using estimated weights
+combined_forecast_h6 <- optimal_weights[1] * dyn_forecasts$`6` + 
+                         optimal_weights[2] * nnar_forecasts$`6` + 
+                         optimal_weights[3] * xgb_forecasts$`6`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h6 <- accuracy(combined_forecast_h6, true_values$`6`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h6)
+
+# Compute accuracy of dynamic forecasts for horizon 6
+accuracy_dyn_h6 <- accuracy(dyn_forecasts$`6`, true_values$`6`)
+print(accuracy_dyn_h6)
+
+# Compute accuracy of NNAR forecasts for horizon 6
+accuracy_nnar_h6 <- accuracy(nnar_forecasts$`6`, true_values$`6`)
+print(accuracy_nnar_h6)
+
+# Compute accuracy of XGBoost forecasts for horizon 6
+accuracy_xgb_h6 <- accuracy(xgb_forecasts$`6`, true_values$`6`)
+print(accuracy_xgb_h6)
+
+```
+
+## h=12
+
+```{r}
+# Objective function for constrained optimization
+objective_function <- function(weights, forecasts, actual_values) {
+  combined_forecast <- weights[1] * forecasts[[1]] + 
+                       weights[2] * forecasts[[2]] +
+                       weights[3] * forecasts[[3]]
+  sum((combined_forecast - actual_values) ^ 2)
+}
+
+# Initial weights (e.g., equal weights)
+initial_weights <- c(0.33, 0.33, 0.33)
+
+# Forecasts for horizon 12
+forecasts <- list(dyn_forecasts$`12`, nnar_forecasts$`12`, xgb_forecasts$`12`)
+
+# Perform constrained optimization
+result <- optim(
+  par = initial_weights,
+  fn = objective_function,
+  forecasts = forecasts,
+  actual_values = true_values$`12`,
+  method = "L-BFGS-B",
+  lower = c(0, 0, 0),  # Lower bounds for weights (non-negative)
+  upper = c(1, 1, 1)   # Upper bounds for weights (optional)
+)
+
+# Extract optimal weights
+optimal_weights <- result$par
+
+# Combine forecasts using estimated weights
+combined_forecast_h12 <- optimal_weights[1] * dyn_forecasts$`12` + 
+                          optimal_weights[2] * nnar_forecasts$`12` + 
+                          optimal_weights[3] * xgb_forecasts$`12`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h12 <- accuracy(combined_forecast_h12, true_values$`12`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h12)
+
+# Compute accuracy of dynamic forecasts for horizon 12
+accuracy_dyn_h12 <- accuracy(dyn_forecasts$`12`, true_values$`12`)
+print(accuracy_dyn_h12)
+
+# Compute accuracy of NNAR forecasts for horizon 12
+accuracy_nnar_h12 <- accuracy(nnar_forecasts$`12`, true_values$`12`)
+print(accuracy_nnar_h12)
+
+# Compute accuracy of XGBoost forecasts for horizon 12
+accuracy_xgb_h12 <- accuracy(xgb_forecast$`12`, true_values$`12`)
+print(accuracy_xgb_h12)
+
+```
+
+
+# Combination of all Models
+## h=1
+
+```{r}
+# Objective function for constrained optimization
+objective_function <- function(weights, forecasts, actual_values) {
+  combined_forecast <- weights[1] * forecasts[[1]] + 
+                       weights[2] * forecasts[[2]] +
+                       weights[3] * forecasts[[3]] +
+                       weights[4] * forecasts[[4]] +
+                       weights[5] * forecasts[[5]] +
+                       weights[6] * forecasts[[6]]
+  sum((combined_forecast - actual_values) ^ 2)
+}
+
+# Initial weights (e.g., equal weights)
+initial_weights <- rep(1/6, 6)
+
+# Forecasts for horizon 1
+forecasts <- list(arima_forecasts$`1`, dyn_forecasts$`1`, nnar_forecasts$`1`, 
+                   nnarx_forecasts$`1`, rf_forecasts$`1`, xgb_forecasts$`1`)
+
+# Perform constrained optimization
+result <- optim(
+  par = initial_weights,
+  fn = objective_function,
+  forecasts = forecasts,
+  actual_values = true_values$`1`,
+  method = "L-BFGS-B",
+  lower = rep(0, 6),  # Lower bounds for weights (non-negative)
+  upper = rep(1, 6)   # Upper bounds for weights (optional)
+)
+
+# Extract optimal weights
+optimal_weights <- result$par
+
+# Combine forecasts using estimated weights
+combined_forecast_h1 <- optimal_weights[1] * arima_forecasts$`1` + 
+                         optimal_weights[2] * dyn_forecasts$`1` + 
+                         optimal_weights[3] * nnar_forecasts$`1` + 
+                         optimal_weights[4] * nnarx_forecasts$`1` +
+                         optimal_weights[5] * rf_forecasts$`1` + 
+                         optimal_weights[6] * xgb_forecasts$`1`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h1 <- accuracy(combined_forecast_h1, true_values$`1`)
+
+# Compute accuracy of individual models for horizon 1
+accuracy_arima_h1 <- accuracy(arima_forecasts$`1`, true_values$`1`)
+accuracy_dyn_h1 <- accuracy(dyn_forecasts$`1`, true_values$`1`)
+accuracy_nnar_h1 <- accuracy(nnar_forecasts$`1`, true_values$`1`)
+accuracy_nnarx_h1 <- accuracy(nnarx_forecasts$`1`, true_values$`1`)
+accuracy_rf_h1 <- accuracy(rf_forecasts$`1`, true_values$`1`)
+accuracy_xgb_h1 <- accuracy(xgb_forecasts$`1`, true_values$`1`)
+
+# Create a data frame with accuracy metrics
+accuracy_table <- data.frame(
+  Model = c("ARIMA", "Dyn", "NNAR", "NNARX", "RF", "XGBoost", "Combined"),
+  RMSE = c(accuracy_arima_h1[2], accuracy_dyn_h1[2], accuracy_nnar_h1[2],
+           accuracy_nnarx_h1[2], accuracy_rf_h1[2], accuracy_xgb_h1[2], accuracy_combined_h1[2]),
+  MAE = c(accuracy_arima_h1[3], accuracy_dyn_h1[3], accuracy_nnar_h1[3],
+          accuracy_nnarx_h1[3], accuracy_rf_h1[3], accuracy_xgb_h1[3], accuracy_combined_h1[3]),
+  MAPE = c(accuracy_arima_h1[5], accuracy_dyn_h1[5], accuracy_nnar_h1[5],
+           accuracy_nnarx_h1[5], accuracy_rf_h1[5], accuracy_xgb_h1[5], accuracy_combined_h1[5])
+)
+
+# Print the accuracy table
+print(accuracy_table)
+
+##PLOT
+
+# Create a data frame for plotting
+plot_data <- data.frame(
+  Time = seq_along(true_values$`1`),
+  Actual = true_values$`1`,
+  Dyn = dyn_forecasts$`1`,
+  NNAR = nnar_forecasts$`1`,
+  Combined = combined_forecast_h1
+)
+
+# Convert the data to long format
+library(tidyr)
+plot_data_long <- pivot_longer(plot_data, cols = c(Dyn, NNAR, Combined), names_to = "Model", values_to = "Forecast")
+
+
+# Create a data frame with actual values and combined forecasts for h=1
+data_h1 <- data.frame(Actual = true_values$`1`, NNAR_Forecast = nnar_forecasts$`1`, Dyn_Forecast = dyn_forecasts$`1`, Combined_Forecast = combined_forecast_h1)
+
+# Plot the actual values and combined forecasts for h=1
+ggplot(data_h1, aes(x = seq_along(Actual))) +
+  geom_line(aes(y = Actual, color = "Actual"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = Combined_Forecast, color = "Combined"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = NNAR_Forecast, color = "NNAR"), linetype = "dashed", size = 0.7) +
+  geom_line(aes(y = Dyn_Forecast, color = "Dyn"), linetype = "dashed", size = 0.7) +
+  labs(x = "Inflation Rate", y = "Month", title = "Combined Model vs Actual Values (h=1)") +
+  scale_x_continuous(breaks = seq(1, length(true_values$`1`), by = 5)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_color_manual(values = c("black", "red", "green", "blue"),
+                     name = "Model",
+                     breaks = c("Actual", "Combined", "NNAR", "Dyn"),
+                     labels = c("Actual", "Combined", "NNAR", "Dyn")) +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+
+
+
+
+
+
+```
+
+## h=3
+
+```{r}
+# Objective function for constrained optimization
+objective_function <- function(weights, forecasts, actual_values) {
+  combined_forecast <- weights[1] * arima_forecasts$`3` + 
+                       weights[2] * dyn_forecasts$`3` + 
+                       weights[3] * nnar_forecasts$`3` + 
+                       weights[4] * nnarx_forecasts$`3` +
+                       weights[5] * rf_forecasts$`3` + 
+                       weights[6] * xgb_forecasts$`3`
+  sum((combined_forecast - actual_values) ^ 2)
+}
+
+# Initial weights (e.g., equal weights)
+initial_weights <- rep(1/6, 6)
+
+# Forecasts for horizon 3
+forecasts <- list(arima_forecasts$`3`, dyn_forecasts$`3`, nnar_forecasts$`3`, 
+                   nnarx_forecasts$`3`, rf_forecasts$`3`, xgb_forecasts$`3`)
+
+# Perform constrained optimization
+result <- optim(
+  par = initial_weights,
+  fn = objective_function,
+  forecasts = forecasts,
+  actual_values = true_values$`3`,
+  method = "L-BFGS-B",
+  lower = rep(0, 6),  # Lower bounds for weights (non-negative)
+  upper = rep(1, 6)   # Upper bounds for weights (optional)
+)
+
+# Extract optimal weights
+optimal_weights <- result$par
+
+# Combine forecasts using estimated weights
+combined_forecast_h3 <- optimal_weights[1] * arima_forecasts$`3` + 
+                         optimal_weights[2] * dyn_forecasts$`3` + 
+                         optimal_weights[3] * nnar_forecasts$`3` + 
+                         optimal_weights[4] * nnarx_forecasts$`3` +
+                         optimal_weights[5] * rf_forecasts$`3` + 
+                         optimal_weights[6] * xgb_forecasts$`3`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h3 <- accuracy(combined_forecast_h3, true_values$`3`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h3)
+
+# Compute accuracy of individual models for horizon 3
+accuracy_arima_h3 <- accuracy(arima_forecasts$`3`, true_values$`3`)
+accuracy_dyn_h3 <- accuracy(dyn_forecasts$`3`, true_values$`3`)
+accuracy_nnar_h3 <- accuracy(nnar_forecasts$`3`, true_values$`3`)
+accuracy_nnarx_h3 <- accuracy(nnarx_forecasts$`3`, true_values$`3`)
+accuracy_rf_h3 <- accuracy(rf_forecasts$`3`, true_values$`3`)
+accuracy_xgb_h3 <- accuracy(xgb_forecasts$`3`, true_values$`3`)
+
+# Create a data frame with accuracy metrics
+accuracy_table <- data.frame(
+  Model = c("ARIMA", "Dyn", "NNAR", "NNARX", "RF", "XGBoost", "Combined"),
+  RMSE = c(accuracy_arima_h3[2], accuracy_dyn_h3[2], accuracy_nnar_h3[2],
+           accuracy_nnarx_h3[2], accuracy_rf_h3[2], accuracy_xgb_h3[2], accuracy_combined_h3[2]),
+  MAE = c(accuracy_arima_h3[3], accuracy_dyn_h3[3], accuracy_nnar_h3[3],
+          accuracy_nnarx_h3[3], accuracy_rf_h3[3], accuracy_xgb_h3[3], accuracy_combined_h3[3]),
+  MAPE = c(accuracy_arima_h3[5], accuracy_dyn_h3[5], accuracy_nnar_h3[5],
+           accuracy_nnarx_h3[5], accuracy_rf_h3[5], accuracy_xgb_h3[5], accuracy_combined_h3[5])
+)
+
+# Print the accuracy table
+print(accuracy_table)
+
+##PLOT##
+
+# Create a data frame with actual values and combined forecasts for h=3
+data_h3 <- data.frame(Actual = true_values$`3`, NNAR_Forecast = nnar_forecasts$`3`, Dyn_Forecast = dyn_forecasts$`3`, XGBoost_Forecast = xgb_forecasts$`3`, Combined_Forecast = combined_forecast_h3)
+
+# Plot the actual values and combined forecasts for h=3
+ggplot(data_h3, aes(x = seq_along(Actual))) +
+  geom_line(aes(y = Actual, color = "Actual"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = Combined_Forecast, color = "Combined"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = NNAR_Forecast, color = "NNAR"), linetype = "dashed", size = 0.7) +
+  geom_line(aes(y = Dyn_Forecast, color = "Dyn"), linetype = "dashed", size = 0.7) +
+  geom_line(aes(y = XGBoost_Forecast, color = "XGBoost"), linetype = "dashed", size = 0.7) +
+  labs(x = "Time", y = "Value", title = "Combined Model vs Actual Values (h=3)") +
+  scale_x_continuous(breaks = seq(1, length(true_values$`3`), by = 5)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_color_manual(values = c("black", "red", "green", "blue", "purple"),
+                     name = "Model",
+                     breaks = c("Actual", "Combined", "NNAR", "Dyn", "XGBoost"),
+                     labels = c("Actual", "Combined", "NNAR", "Dyn", "XGBoost")) +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+```
+## h=6
+
+```{r}
+# Objective function for constrained optimization
+objective_function <- function(weights, forecasts, actual_values) {
+  combined_forecast <- weights[1] * arima_forecasts$`6` + 
+                       weights[2] * dyn_forecasts$`6` + 
+                       weights[3] * nnar_forecasts$`6` + 
+                       weights[4] * nnarx_forecasts$`6` +
+                       weights[5] * rf_forecasts$`6` + 
+                       weights[6] * xgb_forecasts$`6`
+  sum((combined_forecast - actual_values) ^ 2)
+}
+
+# Initial weights (e.g., equal weights)
+initial_weights <- rep(1/6, 6)
+
+# Forecasts for horizon 3
+forecasts <- list(arima_forecasts$`6`, dyn_forecasts$`6`, nnar_forecasts$`6`, 
+                   nnarx_forecasts$`6`, rf_forecasts$`6`, xgb_forecasts$`6`)
+
+# Perform constrained optimization
+result <- optim(
+  par = initial_weights,
+  fn = objective_function,
+  forecasts = forecasts,
+  actual_values = true_values$`3`,
+  method = "L-BFGS-B",
+  lower = rep(0, 6),  # Lower bounds for weights (non-negative)
+  upper = rep(1, 6)   # Upper bounds for weights (optional)
+)
+
+# Extract optimal weights
+optimal_weights <- result$par
+
+# Combine forecasts using estimated weights
+combined_forecast_h3 <- optimal_weights[1] * arima_forecasts$`6` + 
+                         optimal_weights[2] * dyn_forecasts$`6` + 
+                         optimal_weights[3] * nnar_forecasts$`6` + 
+                         optimal_weights[4] * nnarx_forecasts$`6` +
+                         optimal_weights[5] * rf_forecasts$`6` + 
+                         optimal_weights[6] * xgb_forecasts$`6`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h3 <- accuracy(combined_forecast_h3, true_values$`6`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h3)
+
+# Compute accuracy of individual models for horizon 3
+accuracy_arima_h3 <- accuracy(arima_forecasts$`6`, true_values$`6`)
+accuracy_dyn_h3 <- accuracy(dyn_forecasts$`6`, true_values$`6`)
+accuracy_nnar_h3 <- accuracy(nnar_forecasts$`6`, true_values$`6`)
+accuracy_nnarx_h3 <- accuracy(nnarx_forecasts$`6`, true_values$`6`)
+accuracy_rf_h3 <- accuracy(rf_forecasts$`6`, true_values$`6`)
+accuracy_xgb_h3 <- accuracy(xgb_forecasts$`6`, true_values$`6`)
+
+
+# Create a data frame with accuracy metrics
+accuracy_table <- data.frame(
+  Model = c("ARIMA", "Dyn", "NNAR", "NNARX", "RF", "XGBoost", "Combined"),
+  RMSE = c(accuracy_arima_h3[2], accuracy_dyn_h3[2], accuracy_nnar_h3[2],
+           accuracy_nnarx_h3[2], accuracy_rf_h3[2], accuracy_xgb_h3[2], accuracy_combined_h3[2]),
+  MAE = c(accuracy_arima_h3[3], accuracy_dyn_h3[3], accuracy_nnar_h3[3],
+          accuracy_nnarx_h3[3], accuracy_rf_h3[3], accuracy_xgb_h3[3], accuracy_combined_h3[3]),
+  MAPE = c(accuracy_arima_h3[5], accuracy_dyn_h3[5], accuracy_nnar_h3[5],
+           accuracy_nnarx_h3[5], accuracy_rf_h3[5], accuracy_xgb_h3[5], accuracy_combined_h3[5])
+)
+
+# Print the accuracy table
+print(accuracy_table)
+
+# Create a data frame with actual values and combined forecasts for h=6
+data_h6 <- data.frame(Actual = true_values$`6`, NNAR_Forecast = nnar_forecasts$`6`, Dyn_Forecast = dyn_forecasts$`6`, XGBoost_Forecast = xgb_forecasts$`6`, Combined_Forecast = combined_forecast_h6)
+
+# Plot the actual values and combined forecasts for h=6
+ggplot(data_h6, aes(x = seq_along(Actual))) +
+  geom_line(aes(y = Actual, color = "Actual"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = Combined_Forecast, color = "Combined"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = NNAR_Forecast, color = "NNAR"), linetype = "dashed", size = 0.7) +
+  geom_line(aes(y = Dyn_Forecast, color = "Dyn"), linetype = "dashed", size = 0.7) +
+  geom_line(aes(y = XGBoost_Forecast, color = "XGBoost"), linetype = "dashed", size = 0.7) +
+  labs(x = "Time", y = "Value", title = "Combined Model vs Actual Values (h=6)") +
+  scale_x_continuous(breaks = seq(1, length(true_values$`6`), by = 5)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_color_manual(values = c("black", "red", "green", "blue", "purple"),
+                     name = "Model",
+                     breaks = c("Actual", "Combined", "NNAR", "Dyn", "XGBoost"),
+                     labels = c("Actual", "Combined", "NNAR", "Dyn", "XGBoost")) +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+```
+
+## h=12
+
+```{r}
+# Objective function for constrained optimization
+objective_function <- function(weights, forecasts, actual_values) {
+  combined_forecast <- weights[1] * arima_forecasts$`12` + 
+                       weights[2] * dyn_forecasts$`12` + 
+                       weights[3] * nnar_forecasts$`12` + 
+                       weights[4] * nnarx_forecasts$`12` +
+                       weights[5] * rf_forecasts$`12` + 
+                       weights[6] * xgb_forecasts$`12`
+  sum((combined_forecast - actual_values) ^ 2)
+}
+
+# Initial weights (e.g., equal weights)
+initial_weights <- rep(1/6, 6)
+
+# Forecasts for horizon 12
+forecasts <- list(arima_forecasts$`12`, dyn_forecasts$`12`, nnar_forecasts$`12`, 
+                   nnarx_forecasts$`12`, rf_forecasts$`12`, xgb_forecasts$`12`)
+
+# Perform constrained optimization
+result <- optim(
+  par = initial_weights,
+  fn = objective_function,
+  forecasts = forecasts,
+  actual_values = true_values$`12`,
+  method = "L-BFGS-B",
+  lower = rep(0, 6),  # Lower bounds for weights (non-negative)
+  upper = rep(1, 6)   # Upper bounds for weights (optional)
+)
+
+# Extract optimal weights
+optimal_weights <- result$par
+
+# Combine forecasts using estimated weights
+combined_forecast_h12 <- optimal_weights[1] * arima_forecasts$`12` + 
+                         optimal_weights[2] * dyn_forecasts$`12` + 
+                         optimal_weights[3] * nnar_forecasts$`12` + 
+                         optimal_weights[4] * nnarx_forecasts$`12` +
+                         optimal_weights[5] * rf_forecasts$`12` + 
+                         optimal_weights[6] * xgb_forecasts$`12`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h12 <- accuracy(combined_forecast_h12, true_values$`12`)
+
+# Print the accuracy of combined forecast
+print(accuracy_combined_h12)
+
+# Compute accuracy of individual models for horizon 12
+accuracy_arima_h12 <- accuracy(arima_forecasts$`12`, true_values$`12`)
+accuracy_dyn_h12 <- accuracy(dyn_forecasts$`12`, true_values$`12`)
+accuracy_nnar_h12 <- accuracy(nnar_forecasts$`12`, true_values$`12`)
+accuracy_nnarx_h12 <- accuracy(nnarx_forecasts$`12`, true_values$`12`)
+accuracy_rf_h12 <- accuracy(rf_forecasts$`12`, true_values$`12`)
+accuracy_xgb_h12 <- accuracy(xgb_forecasts$`12`, true_values$`12`)
+
+# Create a data frame with accuracy metrics
+accuracy_table <- data.frame(
+  Model = c("ARIMA", "Dyn", "NNAR", "NNARX", "RF", "XGBoost", "Combined"),
+  RMSE = c(accuracy_arima_h12[2], accuracy_dyn_h12[2], accuracy_nnar_h12[2],
+           accuracy_nnarx_h12[2], accuracy_rf_h12[2], accuracy_xgb_h12[2], accuracy_combined_h12[2]),
+  MAE = c(accuracy_arima_h12[3], accuracy_dyn_h12[3], accuracy_nnar_h12[3],
+          accuracy_nnarx_h12[3], accuracy_rf_h12[3], accuracy_xgb_h12[3], accuracy_combined_h12[3]),
+  MAPE = c(accuracy_arima_h12[5], accuracy_dyn_h12[5], accuracy_nnar_h12[5],
+           accuracy_nnarx_h12[5], accuracy_rf_h12[5], accuracy_xgb_h12[5], accuracy_combined_h12[5])
+)
+
+# Print the accuracy table
+print(accuracy_table)
+
+# Create a data frame with actual values and combined forecasts for h=12
+data_h12 <- data.frame(Actual = true_values$`12`, Dyn_Forecast = dyn_forecasts$`12`, XGBoost_Forecast = xgb_forecasts$`12`, Combined_Forecast = combined_forecast_h12)
+
+# Plot the actual values and combined forecasts for h=12
+ggplot(data_h12, aes(x = seq_along(Actual))) +
+  geom_line(aes(y = Actual, color = "Actual"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = Combined_Forecast, color = "Combined"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = Dyn_Forecast, color = "Dyn"), linetype = "dashed", size = 0.7) +
+  geom_line(aes(y = XGBoost_Forecast, color = "XGBoost"), linetype = "dashed", size = 0.7) +
+  labs(x = "Time", y = "Value", title = "Combined Model vs Actual Values (h=12)") +
+  scale_x_continuous(breaks = seq(1, length(true_values$`12`), by = 5)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_color_manual(values = c("black", "red", "blue", "green"),
+                     name = "Model",
+                     breaks = c("Actual", "Combined", "Dyn", "XGBoost"),
+                     labels = c("Actual", "Combined", "Dyn", "XGBoost")) +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+```
+# h=1 optim n contraint
+
+```{r}
+# Objective function for constrained optimization
+objective_function <- function(weights, forecasts, actual_values) {
+  # Normalize weights to ensure the sum equals 1
+  weights <- weights / sum(weights)
+  
+  combined_forecast <- weights[1] * forecasts[[1]] + 
+    weights[2] * forecasts[[2]] +
+    weights[3] * forecasts[[3]] +
+    weights[4] * forecasts[[4]] +
+    weights[5] * forecasts[[5]] +
+    weights[6] * forecasts[[6]]
+  sum((combined_forecast - actual_values) ^ 2)
+}
+
+# Initial weights (e.g., equal weights)
+initial_weights <- rep(1/6, 6)
+
+# Perform constrained optimization
+result <- optim(
+  par = initial_weights,
+  fn = objective_function,
+  forecasts = forecasts,
+  actual_values = true_values$`1`,
+  method = "L-BFGS-B",
+  lower = rep(0, 6),  # Lower bounds for weights (non-negative)
+  upper = rep(1, 6)   # Upper bounds for weights (optional)
+)
+
+# Extract optimal weights
+optimal_weights <- result$par
+
+# Normalize weights to ensure the sum equals 1
+optimal_weights <- optimal_weights / sum(optimal_weights)
+
+# Combine forecasts using estimated weights
+combined_forecast_h1 <- optimal_weights[1] * arima_forecasts$`1` + 
+  optimal_weights[2] * dyn_forecasts$`1` + 
+  optimal_weights[3] * nnar_forecasts$`1` + 
+  optimal_weights[4] * nnarx_forecasts$`1` +
+  optimal_weights[5] * rf_forecast$`1` + 
+  optimal_weights[6] * xgb_forecast$`1`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h1 <- accuracy(combined_forecast_h1, true_values$`1`)
+
+# Compute accuracy of individual models for horizon 1
+accuracy_arima_h1 <- accuracy(arima_forecasts$`1`, true_values$`1`)
+accuracy_dyn_h1 <- accuracy(dyn_forecasts$`1`, true_values$`1`)
+accuracy_nnar_h1 <- accuracy(nnar_forecasts$`1`, true_values$`1`)
+accuracy_nnarx_h1 <- accuracy(nnarx_forecasts$`1`, true_values$`1`)
+accuracy_rf_h1 <- accuracy(rf_forecast$`1`, true_values$`1`)
+accuracy_xgb_h1 <- accuracy(xgb_forecast$`1`, true_values$`1`)
+
+# Create a data frame with accuracy metrics
+accuracy_table <- data.frame(
+  Model = c("ARIMA", "Dyn", "NNAR", "NNARX", "RF", "XGBoost", "Combined"),
+  RMSE = c(accuracy_arima_h1[2], accuracy_dyn_h1[2], accuracy_nnar_h1[2],
+           accuracy_nnarx_h1[2], accuracy_rf_h1[2], accuracy_xgb_h1[2], accuracy_combined_h1[2]),
+  MAE = c(accuracy_arima_h1[3], accuracy_dyn_h1[3], accuracy_nnar_h1[3],
+          accuracy_nnarx_h1[3], accuracy_rf_h1[3], accuracy_xgb_h1[3], accuracy_combined_h1[3]),
+  MAPE = c(accuracy_arima_h1[5], accuracy_dyn_h1[5], accuracy_nnar_h1[5],
+           accuracy_nnarx_h1[5], accuracy_rf_h1[5], accuracy_xgb_h1[5], accuracy_combined_h1[5])
+)
+
+# Print the accuracy table
+print(accuracy_table)
+
+##PLOT
+
+# Create a data frame for plotting
+plot_data <- data.frame(
+  Time = seq_along(true_values$`1`),
+  Actual = true_values$`1`,
+  Dyn = dyn_forecasts$`1`,
+  NNAR = nnar_forecasts$`1`,
+  Combined = combined_forecast_h1
+)
+
+# Convert the data to long format
+library(tidyr)
+plot_data_long <- pivot_longer(plot_data, cols = c(Dyn, NNAR, Combined), names_to = "Model", values_to = "Forecast")
+
+
+# Create a data frame with actual values and combined forecasts for h=1
+data_h1 <- data.frame(Actual = true_values$`1`, NNAR_Forecast = nnar_forecasts$`1`, Dyn_Forecast = dyn_forecasts$`1`, Combined_Forecast = combined_forecast_h1)
+
+# Plot the actual values and combined forecasts for h=1
+ggplot(data_h1, aes(x = seq_along(Actual))) +
+  geom_line(aes(y = Actual, color = "Actual"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = Combined_Forecast, color = "Combined"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = NNAR_Forecast, color = "NNAR"), linetype = "dashed", size = 0.7) +
+  geom_line(aes(y = Dyn_Forecast, color = "Dyn"), linetype = "dashed", size = 0.7) +
+  labs(x = "Time", y = "Value", title = "Combined Model vs Actual Values (h=1)") +
+  scale_x_continuous(breaks = seq(1, length(true_values$`1`), by = 5)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_color_manual(values = c("black", "red", "green", "blue"),
+                     name = "Model",
+                     breaks = c("Actual", "Combined", "NNAR", "Dyn"),
+                     labels = c("Actual", "Combined", "NNAR", "Dyn")) +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+```
+
+# h=3 optim constraint
+```{r}
+# Objective function for constrained optimization
+objective_function <- function(weights, forecasts, actual_values) {
+  # Normalize weights to ensure the sum equals 1
+  weights <- weights / sum(weights)
+  
+  combined_forecast <- weights[1] * forecasts[[1]] + 
+    weights[2] * forecasts[[2]] +
+    weights[3] * forecasts[[3]] +
+    weights[4] * forecasts[[4]] +
+    weights[5] * forecasts[[5]] +
+    weights[6] * forecasts[[6]]
+  sum((combined_forecast - actual_values) ^ 2)
+}
+
+# Initial weights (e.g., equal weights)
+initial_weights <- rep(1/6, 6)
+
+# Forecasts for horizon 3
+forecasts_h3 <- list(arima_forecasts$`3`, dyn_forecasts$`3`, nnar_forecasts$`3`, 
+                   nnarx_forecasts$`3`, rf_forecast$`3`, xgb_forecast$`3`)
+
+# Perform constrained optimization
+result_h3 <- optim(
+  par = initial_weights,
+  fn = objective_function,
+  forecasts = forecasts_h3,
+  actual_values = true_values$`3`,
+  method = "L-BFGS-B",
+  lower = rep(0, 6),  # Lower bounds for weights (non-negative)
+  upper = rep(1, 6)   # Upper bounds for weights (optional)
+)
+
+# Extract optimal weights for horizon 3
+optimal_weights_h3 <- result_h3$par
+
+# Normalize weights to ensure the sum equals 1
+optimal_weights_h3 <- optimal_weights_h3 / sum(optimal_weights_h3)
+
+# Combine forecasts using estimated weights for horizon 3
+combined_forecast_h3 <- optimal_weights_h3[1] * arima_forecasts$`3` + 
+  optimal_weights_h3[2] * dyn_forecasts$`3` + 
+  optimal_weights_h3[3] * nnar_forecasts$`3` + 
+  optimal_weights_h3[4] * nnarx_forecasts$`3` +
+  optimal_weights_h3[5] * rf_forecast$`3` + 
+  optimal_weights_h3[6] * xgb_forecast$`3`
+
+# Evaluate accuracy of combined forecast for horizon 3
+accuracy_combined_h3 <- accuracy(combined_forecast_h3, true_values$`3`)
+
+# Print the accuracy table for horizon 3
+print(accuracy_combined_h3)
+
+# Compute accuracy of individual models for horizon 3
+accuracy_arima_h3 <- accuracy(arima_forecasts$`3`, true_values$`3`)
+accuracy_dyn_h3 <- accuracy(dyn_forecasts$`3`, true_values$`3`)
+accuracy_nnar_h3 <- accuracy(nnar_forecasts$`3`, true_values$`3`)
+accuracy_nnarx_h3 <- accuracy(nnarx_forecasts$`3`, true_values$`3`)
+accuracy_rf_h3 <- accuracy(rf_forecast$`3`, true_values$`3`)
+accuracy_xgb_h3 <- accuracy(xgb_forecast$`3`, true_values$`3`)
+
+# Create a data frame with accuracy metrics for horizon 3
+accuracy_table_h3 <- data.frame(
+  Model = c("ARIMA", "Dyn", "NNAR", "NNARX", "RF", "XGBoost", "Combined"),
+  RMSE = c(accuracy_arima_h3[2], accuracy_dyn_h3[2], accuracy_nnar_h3[2],
+           accuracy_nnarx_h3[2], accuracy_rf_h3[2], accuracy_xgb_h3[2], accuracy_combined_h3[2]),
+  MAE = c(accuracy_arima_h3[3], accuracy_dyn_h3[3], accuracy_nnar_h3[3],
+          accuracy_nnarx_h3[3], accuracy_rf_h3[3], accuracy_xgb_h3[3], accuracy_combined_h3[3]),
+  MAPE = c(accuracy_arima_h3[5], accuracy_dyn_h3[5], accuracy_nnar_h3[5],
+           accuracy_nnarx_h3[5], accuracy_rf_h3[5], accuracy_xgb_h3[5], accuracy_combined_h3[5])
+)
+
+# Print the accuracy table for horizon 3
+print(accuracy_table_h3)
+
+##PLOT##
+
+# Create a data frame with actual values and combined forecasts for h=3
+data_h3 <- data.frame(Actual = true_values$`3`, NNAR_Forecast = nnar_forecasts$`3`, Dyn_Forecast = dyn_forecasts$`3`, Combined_Forecast = combined_forecast_h3)
+
+# Plot the actual values and combined forecasts for h=3
+ggplot(data_h3, aes(x = seq_along(Actual))) +
+  geom_line(aes(y = Actual, color = "Actual"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = Combined_Forecast, color = "Combined"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = NNAR_Forecast, color = "NNAR"), linetype = "dashed", size = 0.7) +
+  geom_line(aes(y = Dyn_Forecast, color = "Dyn"), linetype = "dashed", size = 0.7) +
+  labs(x = "Time", y = "Value", title = "Combined Model vs Actual Values (h=3)") +
+  scale_x_continuous(breaks = seq(1, length(true_values$`3`), by = 5)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_color_manual(values = c("black", "red", "green", "blue"),
+                     name = "Model",
+                     breaks = c("Actual", "Combined", "NNAR", "Dyn"),
+                     labels = c("Actual", "Combined", "NNAR", "Dyn")) +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+```
+
+# h=6 optim constrain
+
+```{r}
+# Objective function for constrained optimization
+objective_function <- function(weights, forecasts, actual_values) {
+  # Normalize weights to ensure the sum equals 1
+  weights <- weights / sum(weights)
+  
+  combined_forecast <- weights[1] * forecasts[[1]] + 
+    weights[2] * forecasts[[2]] +
+    weights[3] * forecasts[[3]] +
+    weights[4] * forecasts[[4]] +
+    weights[5] * forecasts[[5]] +
+    weights[6] * forecasts[[6]]
+  sum((combined_forecast - actual_values) ^ 2)
+}
+
+# Initial weights (e.g., equal weights)
+initial_weights <- rep(1/6, 6)
+
+# Forecasts for horizon 6
+forecasts_h6 <- list(arima_forecasts$`6`, dyn_forecasts$`6`, nnar_forecasts$`6`, 
+                   nnarx_forecasts$`6`, rf_forecast$`6`, xgb_forecast$`6`)
+
+# Perform constrained optimization
+result_h6 <- optim(
+  par = initial_weights,
+  fn = objective_function,
+  forecasts = forecasts_h6,
+  actual_values = true_values$`6`,
+  method = "L-BFGS-B",
+  lower = rep(0, 6),  # Lower bounds for weights (non-negative)
+  upper = rep(1, 6)   # Upper bounds for weights (optional)
+)
+
+# Extract optimal weights for horizon 6
+optimal_weights_h6 <- result_h6$par
+
+# Normalize weights to ensure the sum equals 1
+optimal_weights_h6 <- optimal_weights_h6 / sum(optimal_weights_h6)
+
+# Combine forecasts using estimated weights for horizon 6
+combined_forecast_h6 <- optimal_weights_h6[1] * arima_forecasts$`6` + 
+  optimal_weights_h6[2] * dyn_forecasts$`6` + 
+  optimal_weights_h6[3] * nnar_forecasts$`6` + 
+  optimal_weights_h6[4] * nnarx_forecasts$`6` +
+  optimal_weights_h6[5] * rf_forecast$`6` + 
+  optimal_weights_h6[6] * xgb_forecast$`6`
+
+# Evaluate accuracy of combined forecast for horizon 6
+accuracy_combined_h6 <- accuracy(combined_forecast_h6, true_values$`6`)
+
+# Print the accuracy table for horizon 6
+print(accuracy_combined_h6)
+
+# Compute accuracy of individual models for horizon 6
+accuracy_arima_h6 <- accuracy(arima_forecasts$`6`, true_values$`6`)
+accuracy_dyn_h6 <- accuracy(dyn_forecasts$`6`, true_values$`6`)
+accuracy_nnar_h6 <- accuracy(nnar_forecasts$`6`, true_values$`6`)
+accuracy_nnarx_h6 <- accuracy(nnarx_forecasts$`6`, true_values$`6`)
+accuracy_rf_h6 <- accuracy(rf_forecast$`6`, true_values$`6`)
+accuracy_xgb_h6 <- accuracy(xgb_forecast$`6`, true_values$`6`)
+
+# Create a data frame with accuracy metrics for horizon 6
+accuracy_table_h6 <- data.frame(
+  Model = c("ARIMA", "Dyn", "NNAR", "NNARX", "RF", "XGBoost", "Combined"),
+  RMSE = c(accuracy_arima_h6[2], accuracy_dyn_h6[2], accuracy_nnar_h6[2],
+           accuracy_nnarx_h6[2], accuracy_rf_h6[2], accuracy_xgb_h6[2], accuracy_combined_h6[2]),
+  MAE = c(accuracy_arima_h6[3], accuracy_dyn_h6[3], accuracy_nnar_h6[3],
+          accuracy_nnarx_h6[3], accuracy_rf_h6[3], accuracy_xgb_h6[3], accuracy_combined_h6[3]),
+  MAPE = c(accuracy_arima_h6[5], accuracy_dyn_h6[5], accuracy_nnar_h6[5],
+           accuracy_nnarx_h6[5], accuracy_rf_h6[5], accuracy_xgb_h6[5], accuracy_combined_h6[5])
+)
+
+# Print the accuracy table for horizon 6
+print(accuracy_table_h6)
+
+##PLOT##
+
+# Create a data frame with actual values and combined forecasts for h=6
+data_h6 <- data.frame(Actual = true_values$`6`, NNARX_Forecast = nnarx_forecasts$`6`, Dyn_Forecast = dyn_forecasts$`6`, Combined_Forecast = combined_forecast_h6)
+
+# Plot the actual values and combined forecasts for h=6
+ggplot(data_h6, aes(x = seq_along(Actual))) +
+  geom_line(aes(y = Actual, color = "Actual"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = Combined_Forecast, color = "Combined"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = NNARX_Forecast, color = "NNARX"), linetype = "dashed", size = 0.7) +
+  geom_line(aes(y = Dyn_Forecast, color = "Dyn"), linetype = "dashed", size = 0.7) +
+  labs(x = "Time", y = "Value", title = "Combined Model vs Actual Values (h=6)") +
+  scale_x_continuous(breaks = seq(1, length(true_values$`6`), by = 5)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_color_manual(values = c("black", "red", "green", "blue"),
+                     name = "Model",
+                     breaks = c("Actual", "Combined", "NNARX", "Dyn"),
+                     labels = c("Actual", "Combined", "NNARX", "Dyn")) +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+```
+
+# h=12
+
+```{r}
+# Objective function for constrained optimization
+objective_function <- function(weights, forecasts, actual_values) {
+  # Normalize weights to ensure the sum equals 1
+  weights <- weights / sum(weights)
+  
+  combined_forecast <- weights[1] * forecasts[[1]] + 
+    weights[2] * forecasts[[2]] +
+    weights[3] * forecasts[[3]] +
+    weights[4] * forecasts[[4]] +
+    weights[5] * forecasts[[5]] +
+    weights[6] * forecasts[[6]]
+  sum((combined_forecast - actual_values) ^ 2)
+}
+
+# Initial weights (e.g., equal weights)
+initial_weights <- rep(1/6, 6)
+
+# Forecasts for horizon 12
+forecasts_h12 <- list(arima_forecasts$`12`, dyn_forecasts$`12`, nnar_forecasts$`12`, 
+                   nnarx_forecasts$`12`, rf_forecast$`12`, xgb_forecast$`12`)
+
+# Perform constrained optimization
+result_h12 <- optim(
+  par = initial_weights,
+  fn = objective_function,
+  forecasts = forecasts_h12,
+  actual_values = true_values$`12`,
+  method = "L-BFGS-B",
+  lower = rep(0, 6),  # Lower bounds for weights (non-negative)
+  upper = rep(1, 6)   # Upper bounds for weights (optional)
+)
+
+# Extract optimal weights for horizon 12
+optimal_weights_h12 <- result_h12$par
+
+# Normalize weights to ensure the sum equals 1
+optimal_weights_h12 <- optimal_weights_h12 / sum(optimal_weights_h12)
+
+# Combine forecasts using estimated weights for horizon 12
+combined_forecast_h12 <- optimal_weights_h12[1] * arima_forecasts$`12` + 
+  optimal_weights_h12[2] * dyn_forecasts$`12` + 
+  optimal_weights_h12[3] * nnar_forecasts$`12` + 
+  optimal_weights_h12[4] * nnarx_forecasts$`12` +
+  optimal_weights_h12[5] * rf_forecast$`12` + 
+  optimal_weights_h12[6] * xgb_forecast$`12`
+
+# Evaluate accuracy of combined forecast for horizon 12
+accuracy_combined_h12 <- accuracy(combined_forecast_h12, true_values$`12`)
+
+# Print the accuracy table for horizon 12
+print(accuracy_combined_h12)
+
+# Compute accuracy of individual models for horizon 12
+accuracy_arima_h12 <- accuracy(arima_forecasts$`12`, true_values$`12`)
+accuracy_dyn_h12 <- accuracy(dyn_forecasts$`12`, true_values$`12`)
+accuracy_nnar_h12 <- accuracy(nnar_forecasts$`12`, true_values$`12`)
+accuracy_nnarx_h12 <- accuracy(nnarx_forecasts$`12`, true_values$`12`)
+accuracy_rf_h12 <- accuracy(rf_forecast$`12`, true_values$`12`)
+accuracy_xgb_h12 <- accuracy(xgb_forecast$`12`, true_values$`12`)
+
+# Create a data frame with accuracy metrics for horizon 12
+accuracy_table_h12 <- data.frame(
+  Model = c("ARIMA", "Dyn", "NNAR", "NNARX", "RF", "XGBoost", "Combined"),
+  RMSE = c(accuracy_arima_h12[2], accuracy_dyn_h12[2], accuracy_nnar_h12[2],
+           accuracy_nnarx_h12[2], accuracy_rf_h12[2], accuracy_xgb_h12[2], accuracy_combined_h12[2]),
+  MAE = c(accuracy_arima_h12[3], accuracy_dyn_h12[3], accuracy_nnar_h12[3],
+          accuracy_nnarx_h12[3], accuracy_rf_h12[3], accuracy_xgb_h12[3], accuracy_combined_h12[3]),
+  MAPE = c(accuracy_arima_h12[5], accuracy_dyn_h12[5], accuracy_nnar_h12[5],
+           accuracy_nnarx_h12[5], accuracy_rf_h12[5], accuracy_xgb_h12[5], accuracy_combined_h12[5])
+)
+
+# Print the accuracy table for horizon 12
+print(accuracy_table_h12)
+
+##PLOT##
+
+# Create a data frame with actual values and combined forecasts for h=12
+data_h12 <- data.frame(Actual = true_values$`12`, NNAR_Forecast = nnar_forecasts$`12`, Dyn_Forecast = dyn_forecasts$`12`, Combined_Forecast = combined_forecast_h12)
+
+# Plot the actual values and combined forecasts for h=12
+ggplot(data_h12, aes(x = seq_along(Actual))) +
+  geom_line(aes(y = Actual, color = "Actual"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = Combined_Forecast, color = "Combined"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = NNAR_Forecast, color = "NNAR"), linetype = "dashed", size = 0.7) +
+  geom_line(aes(y = Dyn_Forecast, color = "Dyn"), linetype = "dashed", size = 0.7) +
+  labs(x = "Time", y = "Value", title = "Combined Model vs Actual Values (h=12)") +
+  scale_x_continuous(breaks = seq(1, length(true_values$`12`), by = 5)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_color_manual(values = c("black", "red", "green", "blue"),
+                     name = "Model",
+                     breaks = c("Actual", "Combined", "NNAR", "Dyn"),
+                     labels = c("Actual", "Combined", "NNAR", "Dyn")) +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+```
+
+
+# DDWFC
+# (Dyn + XGBoost + NNAR)
+## h=1
+
+```{r}
+library(forecast)
+
+# Function to compute DDWMA forecast for a given set of weights
+compute_ddwma_forecast <- function(weights, forecasts) {
+  combined_forecast <- numeric(length(forecasts[[1]]))
+  for (i in seq_along(forecasts)) {
+    combined_forecast <- combined_forecast + weights[i] * forecasts[[i]]
+  }
+  return(combined_forecast)
+}
+
+# Function to compute one-step ahead forecast error sum of squared (FESS)
+compute_fess <- function(actual_values, combined_forecast) {
+  fess <- sum((actual_values - combined_forecast) ^ 2)
+  return(fess)
+}
+
+# Function to determine optimal weights based on Algorithm 1
+determine_optimal_weights <- function(forecasts, actual_values, L, R) {
+  min_fess <- Inf
+  optimal_weights <- NULL
+  
+  for (r in 1:R) {
+    weights <- runif(length(forecasts))
+    weights <- weights / sum(weights)  # Standardize weights to sum up to 1
+    
+    ddwma_forecast <- compute_ddwma_forecast(weights, forecasts)
+    fess <- compute_fess(actual_values, ddwma_forecast)
+    
+    if (fess < min_fess) {
+      min_fess <- fess
+      optimal_weights <- weights
+    }
+  }
+  
+  return(optimal_weights)
+}
+
+# Example usage:
+# Set the number of lagged demand
+L <- 2
+
+# Set the number of iterations to find optimal weights
+R <- 40000
+
+# HORIZON 1
+# Combine all forecasts into a list
+forecasts <- list(dyn_forecasts$`1`, nnar_forecasts$`1`, xgb_forecasts$`1`)
+
+# Provided actual demand values for horizon 1
+actual_values <- true_values$`1`
+
+# Determine optimal weights
+optimal_weights <- determine_optimal_weights(forecasts, actual_values, L, R)
+
+# Print the optimal weights
+print("Optimal Weights:")
+print(round(optimal_weights,6))
+
+# Compute the combined forecast using optimal weights
+combined_forecasts_ddwa_h1 <- compute_ddwma_forecast(optimal_weights, forecasts)
+
+# Compute FESS
+fess <- compute_fess(actual_values, combined_forecast)
+
+# Print FESS
+print("FESS:")
+print(fess)
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_forecasts_ddwa_h1 <- accuracy(combined_forecasts_ddwa_h1, true_values$`1`)
+
+# Compute accuracy of individual models for horizon 1
+accuracy_arima_h1 <- accuracy(arima_forecasts$`1`, true_values$`1`)
+accuracy_dyn_h1 <- accuracy(dyn_forecasts$`1`, true_values$`1`)
+accuracy_nnar_h1 <- accuracy(nnar_forecasts$`1`, true_values$`1`)
+accuracy_nnarx_h1 <- accuracy(nnarx_forecasts$`1`, true_values$`1`)
+accuracy_rf_h1 <- accuracy(rf_forecasts$`1`, true_values$`1`)
+accuracy_xgb_h1 <- accuracy(xgb_forecasts$`1`, true_values$`1`)
+
+# Create a data frame with accuracy metrics
+accuracy_table <- data.frame(
+  Model = c("ARIMA", "Dyn", "NNAR", "NNARX", "RF", "XGBoost", "Combined"),
+  RMSE = c(accuracy_arima_h1[2], accuracy_dyn_h1[2], accuracy_nnar_h1[2],
+           accuracy_nnarx_h1[2], accuracy_rf_h1[2], accuracy_xgb_h1[2], accuracy_combined_forecasts_ddwa_h1[2]),
+  MAE = c(accuracy_arima_h1[3], accuracy_dyn_h1[3], accuracy_nnar_h1[3],
+          accuracy_nnarx_h1[3], accuracy_rf_h1[3], accuracy_xgb_h1[3], accuracy_combined_forecasts_ddwa_h1[3]),
+  MAPE = c(accuracy_arima_h1[5], accuracy_dyn_h1[5], accuracy_nnar_h1[5],
+           accuracy_nnarx_h1[5], accuracy_rf_h1[5], accuracy_xgb_h1[5], accuracy_combined_forecasts_ddwa_h1[5])
+)
+
+# Print the accuracy table
+print(accuracy_table)
+
+library(ggplot2)
+
+# Create a data frame with actual values and combined forecasts for h=3
+data_h1 <- data.frame(Actual = true_values$`1`, NNAR_Forecast = nnar_forecasts$`1`, Dyn_Forecast = dyn_forecasts$`1`, XGBoost_Forecast = xgb_forecasts$`1`, Combined_Forecast = combined_forecasts_ddwa_h1)
+
+# Plot the actual values and combined forecasts for h=3
+ggplot(data_h1, aes(x = seq_along(Actual))) +
+  geom_line(aes(y = Actual, color = "Actual"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = Combined_Forecast, color = "Combined"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = NNAR_Forecast, color = "NNAR"), linetype = "dashed", size = 0.7) +
+  geom_line(aes(y = Dyn_Forecast, color = "Dyn"), linetype = "dashed", size = 0.7) +
+  geom_line(aes(y = XGBoost_Forecast, color = "XGBoost"), linetype = "dashed", size = 0.7) +
+  labs(x = "Time", y = "Value", title = "Combined Model vs Actual Values (h=3)") +
+  scale_x_continuous(breaks = seq(1, length(true_values$`3`), by = 5)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_color_manual(values = c("black", "red", "green", "blue", "purple"),
+                     name = "Model",
+                     breaks = c("Actual", "Combined", "NNAR", "Dyn", "XGBoost"),
+                     labels = c("Actual", "Combined", "NNAR", "Dyn", "XGBoost")) +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+```
+
+## h=3
+
+```{r}
+# Combine all forecasts into a list
+forecasts <- list(dyn_forecasts$`3`, nnar_forecasts$`3`, xgb_forecasts$`3`)
+
+# Provided actual demand values for horizon 3
+actual_values <- true_values$`3`
+
+# Determine optimal weights
+optimal_weights <- determine_optimal_weights(forecasts, actual_values, L, R)
+
+# Print the optimal weights
+print("Optimal Weights:")
+print(optimal_weights)
+
+# Compute the combined forecast using optimal weights
+combined_forecasts_ddwa_h3 <- compute_ddwma_forecast(optimal_weights, forecasts)
+
+# Compute FESS
+fess <- compute_fess(actual_values, combined_forecasts_ddwa_h3)
+
+# Print FESS
+print("FESS:")
+print(fess)
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_forecasts_ddwa_h3 <- accuracy(combined_forecasts_ddwa_h3, true_values$`3`)
+
+# Compute accuracy of individual models for horizon 3
+accuracy_arima_h3 <- accuracy(arima_forecasts$`3`, true_values$`3`)
+accuracy_dyn_h3 <- accuracy(dyn_forecasts$`3`, true_values$`3`)
+accuracy_nnar_h3 <- accuracy(nnar_forecasts$`3`, true_values$`3`)
+accuracy_nnarx_h3 <- accuracy(nnarx_forecasts$`3`, true_values$`3`)
+accuracy_rf_h3 <- accuracy(rf_forecasts$`3`, true_values$`3`)
+accuracy_xgb_h3 <- accuracy(xgb_forecasts$`3`, true_values$`3`)
+
+# Create a data frame with accuracy metrics
+accuracy_table <- data.frame(
+  Model = c("ARIMA", "Dyn", "NNAR", "NNARX", "RF", "XGBoost", "Combined"),
+  RMSE = c(accuracy_arima_h3[2], accuracy_dyn_h3[2], accuracy_nnar_h3[2],
+           accuracy_nnarx_h3[2], accuracy_rf_h3[2], accuracy_xgb_h3[2], accuracy_combined_forecasts_ddwa_h3[2]),
+  MAE = c(accuracy_arima_h3[3], accuracy_dyn_h3[3], accuracy_nnar_h3[3],
+          accuracy_nnarx_h3[3], accuracy_rf_h3[3], accuracy_xgb_h3[3], accuracy_combined_forecasts_ddwa_h3[3]),
+  MAPE = c(accuracy_arima_h3[5], accuracy_dyn_h3[5], accuracy_nnar_h3[5],
+           accuracy_nnarx_h3[5], accuracy_rf_h3[5], accuracy_xgb_h3[5], accuracy_combined_forecasts_ddwa_h3[5])
+)
+
+# Print the accuracy table
+print(accuracy_table)
+
+library(ggplot2)
+
+# Create a data frame with actual values and combined forecasts for h=3
+data_h3 <- data.frame(Actual = true_values$`3`, NNAR_Forecast = nnar_forecasts$`3`, Dyn_Forecast = dyn_forecasts$`3`, XGBoost_Forecast = xgb_forecasts$`3`, Combined_Forecast = combined_forecasts_ddwa_h3)
+
+# Plot the actual values and combined forecasts for h=3
+ggplot(data_h3, aes(x = seq_along(Actual))) +
+  geom_line(aes(y = Actual, color = "Actual"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = Combined_Forecast, color = "Combined"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = NNAR_Forecast, color = "NNAR"), linetype = "dashed", size = 0.7) +
+  geom_line(aes(y = Dyn_Forecast, color = "Dyn"), linetype = "dashed", size = 0.7) +
+  geom_line(aes(y = XGBoost_Forecast, color = "XGBoost"), linetype = "dashed", size = 0.7) +
+  labs(x = "Time", y = "Value", title = "Combined Model vs Actual Values (h=3)") +
+  scale_x_continuous(breaks = seq(1, length(true_values$`3`), by = 5)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_color_manual(values = c("black", "red", "green", "blue", "purple"),
+                     name = "Model",
+                     breaks = c("Actual", "Combined", "NNAR", "Dyn", "XGBoost"),
+                     labels = c("Actual", "Combined", "NNAR", "Dyn", "XGBoost")) +
+  theme_minimal() +
+  theme(legend.position = "right")
+  theme(legend.position = "right")
+
+
+```
+##h=6
+
+```{r}
+# Combine all forecasts into a list
+forecasts <- list(dyn_forecasts$`6`, nnar_forecasts$`6`, xgb_forecasts$`6`)
+
+# Provided actual demand values for horizon 6
+actual_values <- true_values$`6`
+
+
+# Determine optimal weights
+optimal_weights <- determine_optimal_weights(forecasts, actual_values, L, R)
+
+# Print the optimal weights
+print("Optimal Weights:")
+print(optimal_weights)
+
+# Compute the combined forecast using optimal weights
+combined_forecasts_ddwa_h6 <- compute_ddwma_forecast(optimal_weights, forecasts)
+
+# Compute FESS
+fess <- compute_fess(actual_values, combined_forecasts_ddwa_h6)
+
+# Print FESS
+print("FESS:")
+print(fess)
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_forecasts_ddwa_h6 <- accuracy(combined_forecasts_ddwa_h6, true_values$`6`)
+
+# Compute accuracy of individual models for horizon 6
+accuracy_arima_h6 <- accuracy(arima_forecasts$`6`, true_values$`6`)
+accuracy_dyn_h6 <- accuracy(dyn_forecasts$`6`, true_values$`6`)
+accuracy_nnar_h6 <- accuracy(nnar_forecasts$`6`, true_values$`6`)
+accuracy_nnarx_h6 <- accuracy(nnarx_forecasts$`6`, true_values$`6`)
+accuracy_rf_h6 <- accuracy(rf_forecasts$`6`, true_values$`6`)
+accuracy_xgb_h6 <- accuracy(xgb_forecasts$`6`, true_values$`6`)
+
+# Create a data frame with accuracy metrics
+accuracy_table <- data.frame(
+  Model = c("ARIMA", "Dyn", "NNAR", "NNARX", "RF", "XGBoost", "Combined"),
+  RMSE = c(accuracy_arima_h6[2], accuracy_dyn_h6[2], accuracy_nnar_h6[2],
+           accuracy_nnarx_h6[2], accuracy_rf_h6[2], accuracy_xgb_h6[2], accuracy_combined_forecasts_ddwa_h6[2]),
+  MAE = c(accuracy_arima_h6[3], accuracy_dyn_h6[3], accuracy_nnar_h6[3],
+          accuracy_nnarx_h6[3], accuracy_rf_h6[3], accuracy_xgb_h6[3], accuracy_combined_forecasts_ddwa_h6[3]),
+  MAPE = c(accuracy_arima_h6[5], accuracy_dyn_h6[5], accuracy_nnar_h6[5],
+           accuracy_nnarx_h6[5], accuracy_rf_h6[5], accuracy_xgb_h6[5], accuracy_combined_forecasts_ddwa_h6[5])
+)
+
+# Print the accuracy table
+print(accuracy_table)
+
+library(ggplot2)
+
+# Create a data frame with actual values and combined forecasts for h=3
+data_h6 <- data.frame(Actual = true_values$`6`, NNAR_Forecast = nnar_forecasts$`6`, Dyn_Forecast = dyn_forecasts$`6`, XGBoost_Forecast = xgb_forecasts$`6`, Combined_Forecast = combined_forecasts_ddwa_h6)
+
+# Plot the actual values and combined forecasts for h=3
+ggplot(data_h6, aes(x = seq_along(Actual))) +
+  geom_line(aes(y = Actual, color = "Actual"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = Combined_Forecast, color = "Combined"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = NNAR_Forecast, color = "NNAR"), linetype = "dashed", size = 0.7) +
+  geom_line(aes(y = Dyn_Forecast, color = "Dyn"), linetype = "dashed", size = 0.7) +
+  geom_line(aes(y = XGBoost_Forecast, color = "XGBoost"), linetype = "dashed", size = 0.7) +
+  labs(x = "Time", y = "Value", title = "Combined Model vs Actual Values (h=3)") +
+  scale_x_continuous(breaks = seq(1, length(true_values$`6`), by = 5)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_color_manual(values = c("black", "red", "green", "blue", "purple"),
+                     name = "Model",
+                     breaks = c("Actual", "Combined", "NNAR", "Dyn", "XGBoost"),
+                     labels = c("Actual", "Combined", "NNAR", "Dyn", "XGBoost")) +
+  theme_minimal() +
+  theme(legend.position = "right")
+  theme(legend.position = "right")
+
+```
+##h=12
+
+```{r}
+# Combine all forecasts into a list
+forecasts <- list(dyn_forecasts$`12`, nnar_forecasts$`12`, xgb_forecasts$`12`)
+
+# Provided actual demand values for horizon 12
+actual_values <- true_values$`12`
+
+
+# Determine optimal weights
+optimal_weights <- determine_optimal_weights(forecasts, actual_values, L, R)
+
+# Print the optimal weights
+print("Optimal Weights:")
+print(optimal_weights)
+
+# Compute the combined forecast using optimal weights
+combined_forecasts_ddwa_h12 <- compute_ddwma_forecast(optimal_weights, forecasts)
+
+# Compute FESS
+fess <- compute_fess(actual_values, combined_forecasts_ddwa_h12)
+
+# Print FESS
+print("FESS:")
+print(fess)
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_forecasts_ddwa_h12 <- accuracy(combined_forecasts_ddwa_h12, true_values$`12`)
+
+# Compute accuracy of individual models for horizon 12
+accuracy_arima_h12 <- accuracy(arima_forecasts$`12`, true_values$`12`)
+accuracy_dyn_h12 <- accuracy(dyn_forecasts$`12`, true_values$`12`)
+accuracy_nnar_h12 <- accuracy(nnar_forecasts$`12`, true_values$`12`)
+accuracy_nnarx_h12 <- accuracy(nnarx_forecasts$`12`, true_values$`12`)
+accuracy_rf_h12 <- accuracy(rf_forecasts$`12`, true_values$`12`)
+accuracy_xgb_h12 <- accuracy(xgb_forecasts$`12`, true_values$`12`)
+
+# Create a data frame with accuracy metrics
+accuracy_table <- data.frame(
+  Model = c("ARIMA", "Dyn", "NNAR", "NNARX", "RF", "XGBoost", "Combined"),
+  RMSE = c(accuracy_arima_h12[2], accuracy_dyn_h12[2], accuracy_nnar_h12[2],
+           accuracy_nnarx_h12[2], accuracy_rf_h12[2], accuracy_xgb_h12[2], accuracy_combined_forecasts_ddwa_h12[2]),
+  MAE = c(accuracy_arima_h12[3], accuracy_dyn_h12[3], accuracy_nnar_h12[3],
+          accuracy_nnarx_h12[3], accuracy_rf_h12[3], accuracy_xgb_h12[3], accuracy_combined_forecasts_ddwa_h12[3]),
+  MAPE = c(accuracy_arima_h12[5], accuracy_dyn_h12[5], accuracy_nnar_h12[5],
+           accuracy_nnarx_h12[5], accuracy_rf_h12[5], accuracy_xgb_h12[5], accuracy_combined_forecasts_ddwa_h12[5])
+)
+
+# Print the accuracy table
+print(accuracy_table)
+
+library(ggplot2)
+
+# Create a data frame with actual values and combined forecasts for h=12
+data_h12 <- data.frame(Actual = true_values$`12`, NNAR_Forecast = nnar_forecasts$`12`, Dyn_Forecast = dyn_forecasts$`12`, XGBoost_Forecast = xgb_forecasts$`12`, Combined_Forecast = combined_forecasts_ddwa_h12)
+
+# Plot the actual values and combined forecasts for h=12
+ggplot(data_h12, aes(x = seq_along(Actual))) +
+  geom_line(aes(y = Actual, color = "Actual"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = Combined_Forecast, color = "Combined"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = NNAR_Forecast, color = "NNAR"), linetype = "dashed", size = 0.7) +
+  geom_line(aes(y = Dyn_Forecast, color = "Dyn"), linetype = "dashed", size = 0.7) +
+  geom_line(aes(y = XGBoost_Forecast, color = "XGBoost"), linetype = "dashed", size = 0.7) +
+  labs(x = "Inflation Rate", y = "Month", title = "Combined Model vs Actual Values (h=12)") +
+  scale_x_continuous(breaks = seq(1, length(true_values$`12`), by = 5)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_color_manual(values = c("black", "red", "green", "blue", "purple"),
+                     name = "Model",
+                     breaks = c("Actual", "Combined", "NNAR", "Dyn", "XGBoost"),
+                     labels = c("Actual", "Combined", "NNAR", "Dyn", "XGBoost")) +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+# Combine all forecasts into a list
+combined_forecasts_ddwa <- list(`1` = combined_forecasts_ddwa_h1, 
+                                `3` = combined_forecasts_ddwa_h3, 
+                                `6` = combined_forecasts_ddwa_h6, 
+                                 `12` = combined_forecasts_ddwa_h12)
+
+
+
+```
+# (Dyn + rf + nnarx)
+## h=1
+
+```{r}
+library(forecast)
+library(ggplot2)
+
+# Function to compute DDWMA forecast for a given set of weights
+compute_ddwma_forecast <- function(weights, forecasts) {
+  combined_forecast <- numeric(length(forecasts[[1]]))
+  for (i in seq_along(forecasts)) {
+    combined_forecast <- combined_forecast + weights[i] * forecasts[[i]]
+  }
+  return(combined_forecast)
+}
+
+# Function to compute one-step ahead forecast error sum of squared (FESS)
+compute_fess <- function(actual_values, combined_forecast) {
+  fess <- sum((actual_values - combined_forecast) ^ 2)
+  return(fess)
+}
+
+# Function to determine optimal weights based on Algorithm 1
+determine_optimal_weights <- function(forecasts, actual_values, L, R) {
+  min_fess <- Inf
+  optimal_weights <- NULL
+  
+  for (r in 1:R) {
+    weights <- runif(length(forecasts))
+    weights <- weights / sum(weights)  # Standardize weights to sum up to 1
+    
+    ddwma_forecast <- compute_ddwma_forecast(weights, forecasts)
+    fess <- compute_fess(actual_values, ddwma_forecast)
+    
+    if (fess < min_fess) {
+      min_fess <- fess
+      optimal_weights <- weights
+    }
+  }
+  
+  return(optimal_weights)
+}
+
+# Example usage:
+# Set the number of lagged demand
+L <- 2
+
+# Set the number of iterations to find optimal weights
+R <- 40000
+
+# HORIZON 1
+# Combine all forecasts into a list
+forecasts <- list(dyn_forecasts$`1`, nnarx_forecasts$`1`, rf_forecasts$`1`)
+
+# Provided actual demand values for horizon 1
+actual_values <- true_values$`1`
+
+# Determine optimal weights
+optimal_weights <- determine_optimal_weights(forecasts, actual_values, L, R)
+
+# Print the optimal weights
+print("Optimal Weights:")
+print(round(optimal_weights,6))
+
+# Compute the combined forecast using optimal weights
+combined_forecasts_ddwa_h1 <- compute_ddwma_forecast(optimal_weights, forecasts)
+
+# Compute FESS
+fess <- compute_fess(actual_values, combined_forecasts_ddwa_h1)
+
+# Print FESS
+print("FESS:")
+print(fess)
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_forecasts_ddwa_h1 <- accuracy(combined_forecasts_ddwa_h1, true_values$`1`)
+
+# Compute accuracy of individual models for horizon 1
+accuracy_arima_h1 <- accuracy(arima_forecasts$`1`, true_values$`1`)
+accuracy_dyn_h1 <- accuracy(dyn_forecasts$`1`, true_values$`1`)
+accuracy_nnar_h1 <- accuracy(nnar_forecasts$`1`, true_values$`1`)
+accuracy_nnarx_h1 <- accuracy(nnarx_forecasts$`1`, true_values$`1`)
+accuracy_rf_h1 <- accuracy(rf_forecasts$`1`, true_values$`1`)
+accuracy_xgb_h1 <- accuracy(xgb_forecasts$`1`, true_values$`1`)
+
+# Create a data frame with accuracy metrics
+accuracy_table <- data.frame(
+  Model = c("ARIMA", "Dyn", "NNAR", "NNARX", "RF", "XGBoost", "Combined"),
+  RMSE = c(accuracy_arima_h1[2], accuracy_dyn_h1[2], accuracy_nnar_h1[2],
+           accuracy_nnarx_h1[2], accuracy_rf_h1[2], accuracy_xgb_h1[2], accuracy_combined_forecasts_ddwa_h1[2]),
+  MAE = c(accuracy_arima_h1[3], accuracy_dyn_h1[3], accuracy_nnar_h1[3],
+          accuracy_nnarx_h1[3], accuracy_rf_h1[3], accuracy_xgb_h1[3], accuracy_combined_forecasts_ddwa_h1[3]),
+  MAPE = c(accuracy_arima_h1[5], accuracy_dyn_h1[5], accuracy_nnar_h1[5],
+           accuracy_nnarx_h1[5], accuracy_rf_h1[5], accuracy_xgb_h1[5], accuracy_combined_forecasts_ddwa_h1[5])
+)
+
+# Print the accuracy table
+print(accuracy_table)
+
+# Create a data frame with actual values and combined forecasts for h=1
+data_h1 <- data.frame(Actual = true_values$`1`, NNARX_Forecast = nnarx_forecasts$`1`, Dyn_Forecast = dyn_forecasts$`1`, RF_Forecast = rf_forecasts$`1`, Combined_Forecast = combined_forecasts_ddwa_h1)
+
+# Plot the actual values and combined forecasts for h=1
+ggplot(data_h1, aes(x = seq_along(Actual))) +
+  geom_line(aes(y = Actual, color = "Actual"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = Combined_Forecast, color = "Combined"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = NNARX_Forecast, color = "NNARX"), linetype = "dashed", size = 0.7) +
+  geom_line(aes(y = Dyn_Forecast, color = "Dyn"), linetype = "dashed", size = 0.7) +
+  geom_line(aes(y = RF_Forecast, color = "RF"), linetype = "dashed", size = 0.7) +
+  labs(x = "Time", y = "Value", title = "Combined Model vs Actual Values (h=1)") +
+  scale_x_continuous(breaks = seq(1, length(true_values$`1`), by = 5)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_color_manual(values = c("black", "red", "green", "blue", "purple"),
+                     name = "Model",
+                     breaks = c("Actual", "Combined", "NNARX", "Dyn", "RF"),
+                     labels = c("Actual", "Combined", "NNARX", "Dyn", "RF")) +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+```
+## h=3
+
+```{r}
+library(forecast)
+library(ggplot2)
+
+
+# HORIZON 3
+# Combine all forecasts into a list
+forecasts <- list(dyn_forecasts$`3`, nnarx_forecasts$`3`, rf_forecasts$`3`)
+
+# Provided actual demand values for horizon 3
+actual_values <- true_values$`3`
+
+# Determine optimal weights
+optimal_weights <- determine_optimal_weights(forecasts, actual_values, L, R)
+
+# Print the optimal weights
+print("Optimal Weights:")
+print(round(optimal_weights, 6))
+
+# Compute the combined forecast using optimal weights
+combined_forecasts_ddwa_h3 <- compute_ddwma_forecast(optimal_weights, forecasts)
+
+# Compute FESS
+fess <- compute_fess(actual_values, combined_forecasts_ddwa_h3)
+
+# Print FESS
+print("FESS:")
+print(fess)
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_forecasts_ddwa_h3 <- accuracy(combined_forecasts_ddwa_h3, true_values$`3`)
+
+# Compute accuracy of individual models for horizon 3
+accuracy_arima_h3 <- accuracy(arima_forecasts$`3`, true_values$`3`)
+accuracy_dyn_h3 <- accuracy(dyn_forecasts$`3`, true_values$`3`)
+accuracy_nnar_h3 <- accuracy(nnar_forecasts$`3`, true_values$`3`)
+accuracy_nnarx_h3 <- accuracy(nnarx_forecasts$`3`, true_values$`3`)
+accuracy_rf_h3 <- accuracy(rf_forecasts$`3`, true_values$`3`)
+accuracy_xgb_h3 <- accuracy(xgb_forecasts$`3`, true_values$`3`)
+
+# Create a data frame with accuracy metrics
+accuracy_table <- data.frame(
+  Model = c("ARIMA", "Dyn", "NNAR", "NNARX", "RF", "XGBoost", "Combined"),
+  RMSE = c(accuracy_arima_h3[2], accuracy_dyn_h3[2], accuracy_nnar_h3[2],
+           accuracy_nnarx_h3[2], accuracy_rf_h3[2], accuracy_xgb_h3[2], accuracy_combined_forecasts_ddwa_h3[2]),
+  MAE = c(accuracy_arima_h3[3], accuracy_dyn_h3[3], accuracy_nnar_h3[3],
+          accuracy_nnarx_h3[3], accuracy_rf_h3[3], accuracy_xgb_h3[3], accuracy_combined_forecasts_ddwa_h3[3]),
+  MAPE = c(accuracy_arima_h3[5], accuracy_dyn_h3[5], accuracy_nnar_h3[5],
+           accuracy_nnarx_h3[5], accuracy_rf_h3[5], accuracy_xgb_h3[5], accuracy_combined_forecasts_ddwa_h3[5])
+)
+
+# Print the accuracy table
+print(accuracy_table)
+
+# Create a data frame with actual values and combined forecasts for h=3
+data_h3 <- data.frame(Actual = true_values$`3`, NNARX_Forecast = nnarx_forecasts$`3`, Dyn_Forecast = dyn_forecasts$`3`, RF_Forecast = rf_forecasts$`3`, Combined_Forecast = combined_forecasts_ddwa_h3)
+
+# Plot the actual values and combined forecasts for h=3
+ggplot(data_h3, aes(x = seq_along(Actual))) +
+  geom_line(aes(y = Actual, color = "Actual"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = Combined_Forecast, color = "Combined"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = NNARX_Forecast, color = "NNARX"), linetype = "dashed", size = 0.7) +
+  geom_line(aes(y = Dyn_Forecast, color = "Dyn"), linetype = "dashed", size = 0.7) +
+  geom_line(aes(y = RF_Forecast, color = "RF"), linetype = "dashed", size = 0.7) +
+  labs(x = "Time", y = "Value", title = "Combined Model vs Actual Values (h=3)") +
+  scale_x_continuous(breaks = seq(1, length(true_values$`3`), by = 5)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_color_manual(values = c("black", "red", "green", "blue", "purple"),
+                     name = "Model",
+                     breaks = c("Actual", "Combined", "NNARX", "Dyn", "RF"),
+                     labels = c("Actual", "Combined", "NNARX", "Dyn", "RF")) +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+```
+
+## h=6
+
+```{r}
+# HORIZON 6
+# Combine all forecasts into a list
+forecasts <- list(dyn_forecasts$`6`, nnarx_forecasts$`6`, rf_forecasts$`6`)
+
+# Provided actual demand values for horizon 6
+actual_values <- true_values$`6`
+
+# Determine optimal weights
+optimal_weights <- determine_optimal_weights(forecasts, actual_values, L, R)
+
+# Print the optimal weights
+print("Optimal Weights:")
+print(round(optimal_weights, 6))
+
+# Compute the combined forecast using optimal weights
+combined_forecasts_ddwa_h6 <- compute_ddwma_forecast(optimal_weights, forecasts)
+
+# Compute FESS
+fess <- compute_fess(actual_values, combined_forecasts_ddwa_h6)
+
+# Print FESS
+print("FESS:")
+print(fess)
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_forecasts_ddwa_h6 <- accuracy(combined_forecasts_ddwa_h6, true_values$`6`)
+
+# Compute accuracy of individual models for horizon 6
+accuracy_arima_h6 <- accuracy(arima_forecasts$`6`, true_values$`6`)
+accuracy_dyn_h6 <- accuracy(dyn_forecasts$`6`, true_values$`6`)
+accuracy_nnar_h6 <- accuracy(nnar_forecasts$`6`, true_values$`6`)
+accuracy_nnarx_h6 <- accuracy(nnarx_forecasts$`6`, true_values$`6`)
+accuracy_rf_h6 <- accuracy(rf_forecasts$`6`, true_values$`6`)
+accuracy_xgb_h6 <- accuracy(xgb_forecasts$`6`, true_values$`6`)
+
+# Create a data frame with accuracy metrics
+accuracy_table <- data.frame(
+  Model = c("ARIMA", "Dyn", "NNAR", "NNARX", "RF", "XGBoost", "Combined"),
+  RMSE = c(accuracy_arima_h6[2], accuracy_dyn_h6[2], accuracy_nnar_h6[2],
+           accuracy_nnarx_h6[2], accuracy_rf_h6[2], accuracy_xgb_h6[2], accuracy_combined_forecasts_ddwa_h6[2]),
+  MAE = c(accuracy_arima_h6[3], accuracy_dyn_h6[3], accuracy_nnar_h6[3],
+          accuracy_nnarx_h6[3], accuracy_rf_h6[3], accuracy_xgb_h6[3], accuracy_combined_forecasts_ddwa_h6[3]),
+  MAPE = c(accuracy_arima_h6[5], accuracy_dyn_h6[5], accuracy_nnar_h6[5],
+           accuracy_nnarx_h6[5], accuracy_rf_h6[5], accuracy_xgb_h6[5], accuracy_combined_forecasts_ddwa_h6[5])
+)
+
+# Print the accuracy table
+print(accuracy_table)
+
+# Create a data frame with actual values and combined forecasts for h=6
+data_h6 <- data.frame(Actual = true_values$`6`, NNARX_Forecast = nnarx_forecasts$`6`, Dyn_Forecast = dyn_forecasts$`6`, RF_Forecast = rf_forecasts$`6`, Combined_Forecast = combined_forecasts_ddwa_h6)
+
+# Plot the actual values and combined forecasts for h=6
+ggplot(data_h6, aes(x = seq_along(Actual))) +
+  geom_line(aes(y = Actual, color = "Actual"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = Combined_Forecast, color = "Combined"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = NNARX_Forecast, color = "NNARX"), linetype = "dashed", size = 0.7) +
+  geom_line(aes(y = Dyn_Forecast, color = "Dyn"), linetype = "dashed", size = 0.7) +
+  geom_line(aes(y = RF_Forecast, color = "RF"), linetype = "dashed", size = 0.7) +
+  labs(x = "Time", y = "Value", title = "Combined Model vs Actual Values (h=6)") +
+  scale_x_continuous(breaks = seq(1, length(true_values$`6`), by = 5)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_color_manual(values = c("black", "red", "green", "blue", "purple"),
+                     name = "Model",
+                     breaks = c("Actual", "Combined", "NNARX", "Dyn", "RF"),
+                     labels = c("Actual", "Combined", "NNARX", "Dyn", "RF")) +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+```
+## h=12
+
+```{r}
+
+# HORIZON 12
+# Combine all forecasts into a list
+forecasts <- list(dyn_forecasts$`12`, rf_forecasts$`12`)
+
+# Provided actual demand values for horizon 12
+actual_values <- true_values$`12`
+
+# Determine optimal weights
+optimal_weights <- determine_optimal_weights(forecasts, actual_values, L, R)
+
+# Print the optimal weights
+print("Optimal Weights:")
+print(round(optimal_weights, 6))
+
+# Compute the combined forecast using optimal weights
+combined_forecasts_ddwa_h12 <- compute_ddwma_forecast(optimal_weights, forecasts)
+
+# Compute FESS
+fess <- compute_fess(actual_values, combined_forecasts_ddwa_h12)
+
+# Print FESS
+print("FESS:")
+print(fess)
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_forecasts_ddwa_h12 <- accuracy(combined_forecasts_ddwa_h12, true_values$`12`)
+
+# Compute accuracy of individual models for horizon 12
+accuracy_arima_h12 <- accuracy(arima_forecasts$`12`, true_values$`12`)
+accuracy_dyn_h12 <- accuracy(dyn_forecasts$`12`, true_values$`12`)
+accuracy_nnar_h12 <- accuracy(nnar_forecasts$`12`, true_values$`12`)
+accuracy_nnarx_h12 <- accuracy(nnarx_forecasts$`12`, true_values$`12`)
+accuracy_rf_h12 <- accuracy(rf_forecasts$`12`, true_values$`12`)
+accuracy_xgb_h12 <- accuracy(xgb_forecasts$`12`, true_values$`12`)
+
+# Create a data frame with accuracy metrics
+accuracy_table <- data.frame(
+  Model = c("ARIMA", "Dyn", "NNAR", "NNARX", "RF", "XGBoost", "Combined"),
+  RMSE = c(accuracy_arima_h12[2], accuracy_dyn_h12[2], accuracy_nnar_h12[2],
+           accuracy_nnarx_h12[2], accuracy_rf_h12[2], accuracy_xgb_h12[2], accuracy_combined_forecasts_ddwa_h12[2]),
+  MAE = c(accuracy_arima_h12[3], accuracy_dyn_h12[3], accuracy_nnar_h12[3],
+          accuracy_nnarx_h12[3], accuracy_rf_h12[3], accuracy_xgb_h12[3], accuracy_combined_forecasts_ddwa_h12[3]),
+  MAPE = c(accuracy_arima_h12[5], accuracy_dyn_h12[5], accuracy_nnar_h12[5],
+           accuracy_nnarx_h12[5], accuracy_rf_h12[5], accuracy_xgb_h12[5], accuracy_combined_forecasts_ddwa_h12[5])
+)
+
+# Print the accuracy table
+print(accuracy_table)
+
+# Create a data frame with actual values and combined forecasts for h=12
+data_h12 <- data.frame(Actual = true_values$`12`, NNARX_Forecast = nnarx_forecasts$`12`, Dyn_Forecast = dyn_forecasts$`12`, RF_Forecast = rf_forecasts$`12`, Combined_Forecast = combined_forecasts_ddwa_h12)
+
+# Plot the actual values and combined forecasts for h=12
+ggplot(data_h12, aes(x = seq_along(Actual))) +
+  geom_line(aes(y = Actual, color = "Actual"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = Combined_Forecast, color = "Combined"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = NNARX_Forecast, color = "NNARX"), linetype = "dashed", size = 0.7) +
+  geom_line(aes(y = Dyn_Forecast, color = "Dyn"), linetype = "dashed", size = 0.7) +
+  geom_line(aes(y = RF_Forecast, color = "RF"), linetype = "dashed", size = 0.7) +
+  labs(x = "Month", y = "Inflation Rate", title = "Combined Model vs Actual Values (h=12)") +
+  scale_x_continuous(breaks = seq(1, length(true_values$`12`), by = 5)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_color_manual(values = c("black", "red", "green", "blue", "purple"),
+                     name = "Model",
+                     breaks = c("Actual", "Combined", "NNARX", "Dyn", "RF"),
+                     labels = c("Actual", "Combined", "NNARX", "Dyn", "RF")) +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+# Combine all forecasts into a list for different horizons
+combined_forecasts_ddwa <- list(`1` = combined_forecasts_ddwa_h1, 
+                                `3` = combined_forecasts_ddwa_h3, 
+                                `6` = combined_forecasts_ddwa_h6, 
+                                `12` = combined_forecasts_ddwa_h12)
+
+
+
+```
+
+
+
+# (DYN + NNAR + RF)
+# h=1 (dnr)
+```{r}
+library(forecast)
+library(ggplot2)
+
+# Function to compute DDWMA forecast for a given set of weights
+compute_ddwma_forecast <- function(weights, forecasts) {
+  combined_forecast <- numeric(length(forecasts[[1]]))
+  for (i in seq_along(forecasts)) {
+    combined_forecast <- combined_forecast + weights[i] * forecasts[[i]]
+  }
+  return(combined_forecast)
+}
+
+# Function to compute one-step ahead forecast error sum of squares (FESS)
+compute_fess <- function(actual_values, combined_forecast) {
+  fess <- sum((actual_values - combined_forecast) ^ 2)
+  return(fess)
+}
+
+# Function to determine optimal weights based on Algorithm 1
+determine_optimal_weights <- function(forecasts, actual_values, L, R) {
+  min_fess <- Inf
+  optimal_weights <- NULL
+  
+  for (r in 1:R) {
+    weights <- runif(length(forecasts))
+    weights <- weights / sum(weights)  # Standardize weights to sum up to 1
+    
+    ddwma_forecast <- compute_ddwma_forecast(weights, forecasts)
+    fess <- compute_fess(actual_values, ddwma_forecast)
+    
+    if (fess < min_fess) {
+      min_fess <- fess
+      optimal_weights <- weights
+    }
+  }
+  
+  return(optimal_weights)
+}
+
+# Example usage:
+# Set the number of lagged demand
+L <- 2
+
+# Set the number of iterations to find optimal weights
+R <- 40000
+
+# HORIZON 1
+# Combine all forecasts into a list
+forecasts <- list(dyn_forecasts$`1`, nnar_forecasts$`1`, rf_forecasts$`1`)
+
+# Provided actual demand values for horizon 1
+actual_values <- true_values$`1`
+
+# Determine optimal weights
+optimal_weights_h1 <- determine_optimal_weights(forecasts, actual_values, L, R)
+
+# Print the optimal weights
+print("Optimal Weights:")
+print(round(optimal_weights_h1, 3))
+
+# Compute the combined forecast using optimal weights
+combined_forecasts_ddwa_h1 <- compute_ddwma_forecast(optimal_weights_h1, forecasts)
+
+# Compute FESS
+fess <- compute_fess(actual_values, combined_forecasts_ddwa_h1)
+
+# Print FESS
+print("FESS:")
+print(fess)
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_forecasts_ddwa_h1 <- accuracy(combined_forecasts_ddwa_h1, true_values$`1`)
+
+# Compute accuracy of individual models for horizon 1
+accuracy_arima_h1 <- accuracy(arima_forecasts$`1`, true_values$`1`)
+accuracy_dyn_h1 <- accuracy(dyn_forecasts$`1`, true_values$`1`)
+accuracy_nnar_h1 <- accuracy(nnar_forecasts$`1`, true_values$`1`)
+accuracy_nnarx_h1 <- accuracy(nnarx_forecasts$`1`, true_values$`1`)
+accuracy_rf_h1 <- accuracy(rf_forecasts$`1`, true_values$`1`)
+accuracy_xgb_h1 <- accuracy(xgb_forecasts$`1`, true_values$`1`)
+
+# Create a data frame with accuracy metrics
+accuracy_table <- data.frame(
+  Model = c("ARIMA", "Dyn", "NNAR", "NNARX", "RF", "XGBoost", "Combined"),
+  RMSE = c(accuracy_arima_h1[2], accuracy_dyn_h1[2], accuracy_nnar_h1[2],
+           accuracy_nnarx_h1[2], accuracy_rf_h1[2], accuracy_xgb_h1[2], accuracy_combined_forecasts_ddwa_h1[2]),
+  MAE = c(accuracy_arima_h1[3], accuracy_dyn_h1[3], accuracy_nnar_h1[3],
+          accuracy_nnarx_h1[3], accuracy_rf_h1[3], accuracy_xgb_h1[3], accuracy_combined_forecasts_ddwa_h1[3]),
+  MAPE = c(accuracy_arima_h1[5], accuracy_dyn_h1[5], accuracy_nnar_h1[5],
+           accuracy_nnarx_h1[5], accuracy_rf_h1[5], accuracy_xgb_h1[5], accuracy_combined_forecasts_ddwa_h1[5])
+)
+
+# Print the accuracy table
+print(accuracy_table)
+
+# Create a data frame with actual values and combined forecasts for h=1
+data_h1 <- data.frame(Actual = true_values$`1`, Dyn_Forecast = dyn_forecasts$`1`, NNAR_Forecast = nnar_forecasts$`1`, RF_Forecast = rf_forecasts$`1`, Combined_Forecast = combined_forecasts_ddwa_h1)
+
+# Create a sequence of dates from January 2017 to August 2023
+dates <- seq(as.Date("2017-01-01"), as.Date("2023-08-01"), by = "months")
+
+# Plot the actual values and combined forecasts for h=1
+ddwa1 <- ggplot(data_h1, aes(x = seq_along(Actual))) +
+  geom_line(aes(y = Actual, color = "Actual"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = Combined_Forecast, color = "Combined"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = NNAR_Forecast, color = "NNAR"), linetype = "dashed", size = 1.2) +
+  geom_line(aes(y = Dyn_Forecast, color = "Dyn"), linetype = "dashed", size = 1.2) +
+  geom_line(aes(y = RF_Forecast, color = "RF"), linetype = "dashed", size = 1.2) +
+  labs(x = "Date (m/y)", y = "Inflation Rate") +
+  scale_x_continuous(breaks = seq(1, 80, by = 10), labels = format(dates[seq(1, length(dates), by = 10)], "%b %y")) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_color_manual(values = c("black", "red", "magenta", "blue", "green"),
+                     name = "Model",
+                     breaks = c("Actual", "Combined", "NNAR", "Dyn", "RF"),
+                     labels = c("Actual", "Combined", "NNAR", "Dyn", "RF")) +
+  theme_minimal() +
+  theme(legend.position = "none")+
+  theme(
+    plot.background = element_rect(fill = "#e2f3f9", color = NA),
+    panel.background = element_rect(fill = "#e2f3f9", color = NA),
+    axis.text.x = element_text(color = "black", face = "bold", size = 16),
+    axis.text.y = element_text(color = "black", face = "bold", size = 16),
+    axis.title.x = element_text(color = "black", face = "bold", size = 16),
+    axis.title.y = element_text(color = "black", face = "bold", size = 16),
+    plot.title = element_text(color = "black", face = "bold", size = 16),
+    plot.subtitle = element_text(color = "black"),
+    axis.line = element_line(color = "black"),
+    panel.grid.major = element_line(color = "gray", linetype = "dashed"),
+    panel.grid.minor = element_blank(),  # Remove minor gridlines
+    axis.ticks = element_line(color = "black", lineend = "round")  # Add ticks/dots at the axis line
+  )+
+  theme(plot.background = element_rect(fill = "#e2f3f9"))
+
+# Save the plot as an image file
+ggsave("ddwa1.png", plot = ddwa1, width = 10, height = 6, dpi = 300)
+getwd()
+```
+# h=3 (dnr)
+```{r}
+library(forecast)
+library(ggplot2)
+
+# Example usage:
+# Set the number of lagged demand
+L <- 2
+
+# Set the number of iterations to find optimal weights
+R <- 40000
+
+# HORIZON 3
+# Combine all forecasts into a list
+forecasts <- list(dyn_forecasts$`3`, nnar_forecasts$`3`, rf_forecasts$`3`)
+
+# Provided actual demand values for horizon 3
+actual_values <- true_values$`3`
+
+# Determine optimal weights
+optimal_weights_h3 <- determine_optimal_weights(forecasts, actual_values, L, R)
+
+# Print the optimal weights
+print("Optimal Weights:")
+print(round(optimal_weights, 6))
+
+# Compute the combined forecast using optimal weights
+combined_forecasts_ddwa_h3 <- compute_ddwma_forecast(optimal_weights_h3, forecasts)
+
+# Compute FESS
+fess <- compute_fess(actual_values, combined_forecasts_ddwa_h3)
+
+# Print FESS
+print("FESS:")
+print(fess)
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_forecasts_ddwa_h3 <- accuracy(combined_forecasts_ddwa_h3, true_values$`3`)
+
+# Compute accuracy of individual models for horizon 3
+accuracy_arima_h3 <- accuracy(arima_forecasts$`3`, true_values$`3`)
+accuracy_dyn_h3 <- accuracy(dyn_forecasts$`3`, true_values$`3`)
+accuracy_nnar_h3 <- accuracy(nnar_forecasts$`3`, true_values$`3`)
+accuracy_nnarx_h3 <- accuracy(nnarx_forecasts$`3`, true_values$`3`)
+accuracy_rf_h3 <- accuracy(rf_forecasts$`3`, true_values$`3`)
+accuracy_xgb_h3 <- accuracy(xgb_forecasts$`3`, true_values$`3`)
+
+# Create a data frame with accuracy metrics
+accuracy_table <- data.frame(
+  Model = c("ARIMA", "Dyn", "NNAR", "NNARX", "RF", "XGBoost", "Combined"),
+  RMSE = c(accuracy_arima_h3[2], accuracy_dyn_h3[2], accuracy_nnar_h3[2],
+           accuracy_nnarx_h3[2], accuracy_rf_h3[2], accuracy_xgb_h3[2], accuracy_combined_forecasts_ddwa_h3[2]),
+  MAE = c(accuracy_arima_h3[3], accuracy_dyn_h3[3], accuracy_nnar_h3[3],
+          accuracy_nnarx_h3[3], accuracy_rf_h3[3], accuracy_xgb_h3[3], accuracy_combined_forecasts_ddwa_h3[3]),
+  MAPE = c(accuracy_arima_h3[5], accuracy_dyn_h3[5], accuracy_nnar_h3[5],
+           accuracy_nnarx_h3[5], accuracy_rf_h3[5], accuracy_xgb_h3[5], accuracy_combined_forecasts_ddwa_h3[5])
+)
+
+# Print the accuracy table
+print(accuracy_table)
+
+# Create a data frame with actual values and combined forecasts for h=3
+data_h3 <- data.frame(Actual = true_values$`3`, NNAR_Forecast = nnar_forecasts$`3`, Dyn_Forecast = dyn_forecasts$`3`, RF_Forecast = rf_forecasts$`3`, Combined_Forecast = combined_forecasts_ddwa_h3)
+
+# Create a sequence of dates from January 2017 to August 2023
+dates <- seq(as.Date("2017-03-01"), as.Date("2023-08-01"), by = "months")
+
+# Plot the actual values and combined forecasts for h=1
+ddwa3 <- ggplot(data_h3, aes(x = seq_along(Actual))) +
+  geom_line(aes(y = Actual, color = "Actual"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = Combined_Forecast, color = "Combined"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = NNAR_Forecast, color = "NNAR"), linetype = "dashed", size = 1.2) +
+  geom_line(aes(y = Dyn_Forecast, color = "Dyn"), linetype = "dashed", size = 1.2) +
+  geom_line(aes(y = RF_Forecast, color = "RF"), linetype = "dashed", size = 1.2) +
+  labs(x = "Date (m/y)", y = "Inflation Rate") +
+  scale_x_continuous(breaks = seq(1, 78, by = 10), labels = format(dates[seq(1, length(dates), by = 10)], "%b %y")) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_color_manual(values = c("black", "red", "magenta", "blue", "green"),
+                     name = "Model",
+                     breaks = c("Actual", "Combined", "NNAR", "Dyn", "RF"),
+                     labels = c("Actual", "Combined", "NNAR", "Dyn", "RF")) +
+  theme_minimal() +
+  theme(legend.position = "none")+
+  theme(
+    plot.background = element_rect(fill = "#e2f3f9", color = NA),
+    panel.background = element_rect(fill = "#e2f3f9", color = NA),
+    axis.text.x = element_text(color = "black", face = "bold", size = 16),
+    axis.text.y = element_text(color = "black", face = "bold", size = 16),
+    axis.title.x = element_text(color = "black", face = "bold", size = 16),
+    axis.title.y = element_text(color = "black", face = "bold", size = 16),
+    plot.title = element_text(color = "black", face = "bold", size = 16),
+    plot.subtitle = element_text(color = "black"),
+    axis.line = element_line(color = "black"),
+    panel.grid.major = element_line(color = "gray", linetype = "dashed"),
+    panel.grid.minor = element_blank(),  # Remove minor gridlines
+    axis.ticks = element_line(color = "black", lineend = "round")  # Add ticks/dots at the axis line
+  )+
+  theme(plot.background = element_rect(fill = "#e2f3f9"))
+
+
+# Save the plot as an image file
+ggsave("ddwa3.png", plot = ddwa3, width = 10, height = 6, dpi = 300)
+
+```
+# h=6 (dnr)
+
+```{r}
+library(forecast)
+library(ggplot2)
+
+
+# HORIZON 6
+# Combine all forecasts into a list
+forecasts <- list(dyn_forecasts$`6`, nnar_forecasts$`6`, rf_forecasts$`6`)
+
+# Provided actual demand values for horizon 6
+actual_values <- true_values$`6`
+
+# Determine optimal weights
+optimal_weights_h6 <- determine_optimal_weights(forecasts, actual_values, L, R)
+
+# Print the optimal weights
+print("Optimal Weights:")
+print(round(optimal_weights, 6))
+
+# Compute the combined forecast using optimal weights
+combined_forecasts_ddwa_h6 <- compute_ddwma_forecast(optimal_weights_h6, forecasts)
+
+# Compute FESS
+fess <- compute_fess(actual_values, combined_forecasts_ddwa_h6)
+
+# Print FESS
+print("FESS:")
+print(fess)
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_forecasts_ddwa_h6 <- accuracy(combined_forecasts_ddwa_h6, true_values$`6`)
+
+# Compute accuracy of individual models for horizon 6
+accuracy_arima_h6 <- accuracy(arima_forecasts$`6`, true_values$`6`)
+accuracy_dyn_h6 <- accuracy(dyn_forecasts$`6`, true_values$`6`)
+accuracy_nnar_h6 <- accuracy(nnar_forecasts$`6`, true_values$`6`)
+accuracy_rf_h6 <- accuracy(rf_forecasts$`6`, true_values$`6`)
+accuracy_xgb_h6 <- accuracy(xgb_forecasts$`6`, true_values$`6`)
+
+# Create a data frame with accuracy metrics
+accuracy_table <- data.frame(
+  Model = c("ARIMA", "Dyn", "NNAR", "RF", "XGBoost", "Combined"),
+  RMSE = c(accuracy_arima_h6[2], accuracy_dyn_h6[2], accuracy_nnar_h6[2],
+           accuracy_rf_h6[2], accuracy_xgb_h6[2], accuracy_combined_forecasts_ddwa_h6[2]),
+  MAE = c(accuracy_arima_h6[3], accuracy_dyn_h6[3], accuracy_nnar_h6[3],
+          accuracy_rf_h6[3], accuracy_xgb_h6[3], accuracy_combined_forecasts_ddwa_h6[3]),
+  MAPE = c(accuracy_arima_h6[5], accuracy_dyn_h6[5], accuracy_nnar_h6[5],
+           accuracy_rf_h6[5], accuracy_xgb_h6[5], accuracy_combined_forecasts_ddwa_h6[5])
+)
+
+# Print the accuracy table
+print(accuracy_table)
+
+# Create a data frame with actual values and combined forecasts for h=6
+data_h6 <- data.frame(Actual = true_values$`6`, NNAR_Forecast = nnar_forecasts$`6`, Dyn_Forecast = dyn_forecasts$`6`, RF_Forecast = rf_forecasts$`6`, Combined_Forecast = combined_forecasts_ddwa_h6)
+
+# Create a sequence of dates from January 2017 to August 2023
+dates <- seq(as.Date("2017-06-01"), as.Date("2023-08-01"), by = "months")
+
+# Plot the actual values and combined forecasts for h=6
+ddwa6 <- ggplot(data_h6, aes(x = seq_along(Actual))) +
+  geom_line(aes(y = Actual, color = "Actual"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = Combined_Forecast, color = "Combined"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = NNAR_Forecast, color = "NNAR"), linetype = "dashed", size = 1.2) +
+  geom_line(aes(y = Dyn_Forecast, color = "Dyn"), linetype = "dashed", size = 1.2) +
+  geom_line(aes(y = RF_Forecast, color = "RF"), linetype = "dashed", size = 1.2) +
+  labs(x = "Date (m/y)", y = "Inflation Rate") +
+  scale_x_continuous(breaks = seq(1, 75, by = 10), labels = format(dates[seq(1, length(dates), by = 10)], "%b %y")) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_color_manual(values = c("black", "red", "magenta", "blue", "green"),
+                     name = "Model",
+                     breaks = c("Actual", "Combined", "NNAR", "Dyn", "RF"),
+                     labels = c("Actual", "Combined", "NNAR", "Dyn", "RF")) +
+  theme_minimal() +
+  theme(legend.position = "none")+
+  theme(
+    plot.background = element_rect(fill = "#e2f3f9", color = NA),
+    panel.background = element_rect(fill = "#e2f3f9", color = NA),
+    axis.text.x = element_text(color = "black", face = "bold", size = 16),
+    axis.text.y = element_text(color = "black", face = "bold", size = 16),
+    axis.title.x = element_text(color = "black", face = "bold", size = 16),
+    axis.title.y = element_text(color = "black", face = "bold", size = 16),
+    plot.title = element_text(color = "black", face = "bold", size = 16),
+    plot.subtitle = element_text(color = "black"),
+    axis.line = element_line(color = "black"),
+    panel.grid.major = element_line(color = "gray", linetype = "dashed"),
+    panel.grid.minor = element_blank(),  # Remove minor gridlines
+    axis.ticks = element_line(color = "black", lineend = "round")  # Add ticks/dots at the axis line
+  )+
+  theme(plot.background = element_rect(fill = "#e2f3f9"))
+
+
+# Save the plot as an image file
+ggsave("ddwa6.png", plot = ddwa6, width = 10, height = 6, dpi = 300)
+```
+
+# h=12 (dnr)
+
+```{r}
+R <- 50000
+
+# HORIZON 12
+# Combine all forecasts into a list
+forecasts <- list(dyn_forecasts$`12`, rf_forecasts$`12`, nnar_forecasts$`12`)
+
+# Provided actual demand values for horizon 12
+actual_values <- true_values$`12`
+
+# Determine optimal weights
+optimal_weights_h12 <- determine_optimal_weights(forecasts, actual_values, L, R)
+
+# Print the optimal weights
+print("Optimal Weights:")
+print(round(optimal_weights, 6))
+
+# Compute the combined forecast using optimal weights
+combined_forecasts_ddwa_h12 <- compute_ddwma_forecast(optimal_weights_h12, forecasts)
+
+# Compute FESS
+fess <- compute_fess(actual_values, combined_forecasts_ddwa_h12)
+
+# Print FESS
+print("FESS:")
+print(fess)
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_forecasts_ddwa_h12 <- accuracy(combined_forecasts_ddwa_h12, true_values$`12`)
+
+# Compute accuracy of individual models for horizon 12
+accuracy_arima_h12 <- accuracy(arima_forecasts$`12`, true_values$`12`)
+accuracy_dyn_h12 <- accuracy(dyn_forecasts$`12`, true_values$`12`)
+accuracy_nnar_h12 <- accuracy(nnar_forecasts$`12`, true_values$`12`)
+accuracy_nnarx_h12 <- accuracy(nnarx_forecasts$`12`, true_values$`12`)
+accuracy_rf_h12 <- accuracy(rf_forecasts$`12`, true_values$`12`)
+accuracy_xgb_h12 <- accuracy(xgb_forecasts$`12`, true_values$`12`)
+
+# Create a data frame with accuracy metrics
+accuracy_table <- data.frame(
+  Model = c("ARIMA", "Dyn", "NNAR", "NNARX", "RF", "XGBoost", "Combined"),
+  RMSE = c(accuracy_arima_h12[2], accuracy_dyn_h12[2], accuracy_nnar_h12[2],
+           accuracy_nnarx_h12[2], accuracy_rf_h12[2], accuracy_xgb_h12[2], accuracy_combined_forecasts_ddwa_h12[2]),
+  MAE = c(accuracy_arima_h12[3], accuracy_dyn_h12[3], accuracy_nnar_h12[3],
+          accuracy_nnarx_h12[3], accuracy_rf_h12[3], accuracy_xgb_h12[3], accuracy_combined_forecasts_ddwa_h12[3]),
+  MAPE = c(accuracy_arima_h12[5], accuracy_dyn_h12[5], accuracy_nnar_h12[5],
+           accuracy_nnarx_h12[5], accuracy_rf_h12[5], accuracy_xgb_h12[5], accuracy_combined_forecasts_ddwa_h12[5])
+)
+
+# Print the accuracy table
+print(accuracy_table)
+
+# Create a data frame with actual values and combined forecasts for h=12
+data_h12 <- data.frame(Actual = true_values$`12`, NNAR_Forecast = nnar_forecasts$`12`, Dyn_Forecast = dyn_forecasts$`12`, RF_Forecast = rf_forecasts$`12`, Combined_Forecast = combined_forecasts_ddwa_h12)
+
+# Create a sequence of dates from January 2017 to August 2023
+dates <- seq(as.Date("2017-11-01"), as.Date("2023-08-01"), by = "months")
+
+# Plot the actual values and combined forecasts for h=12
+ddwa12 <- ggplot(data_h12, aes(x = seq_along(Actual))) +
+  geom_line(aes(y = Actual, color = "Actual"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = Combined_Forecast, color = "Proposed"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = NNAR_Forecast, color = "NNAR"), linetype = "dashed", size = 1.2) +
+  geom_line(aes(y = Dyn_Forecast, color = "DR"), linetype = "dashed", size = 1.2) +
+  geom_line(aes(y = RF_Forecast, color = "RF"), linetype = "dashed", size = 1.2) +
+  labs(x = "Date (m/y)", y = "Inflation Rate") +
+  scale_x_continuous(breaks = seq(1, 69, by = 10), labels = format(dates[seq(1, length(dates), by = 10)], "%b %y")) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_color_manual(values = c("black", "red", "magenta", "blue", "green"),
+                     name = "Model",
+                     breaks = c("Actual", "Proposed", "NNAR", "DR", "RF"),
+                     labels = c("Actual", "Proposed", "NNAR", "DR", "RF")) +
+  theme_minimal() +
+  theme(legend.position = "bottom")+
+  theme(
+    plot.background = element_rect(fill = "#e2f3f9", color = NA),
+    panel.background = element_rect(fill = "#e2f3f9", color = NA),
+    axis.text.x = element_text(color = "black", face = "bold", size = 16),
+    axis.text.y = element_text(color = "black", face = "bold", size = 16),
+    axis.title.x = element_text(color = "black", face = "bold", size = 16),
+    axis.title.y = element_text(color = "black", face = "bold", size = 16),
+    plot.title = element_text(color = "black", face = "bold", size = 16),
+    plot.subtitle = element_text(color = "black"),
+    axis.line = element_line(color = "black"),
+    panel.grid.major = element_line(color = "gray", linetype = "dashed"),
+    panel.grid.minor = element_blank(),  # Remove minor gridlines
+    axis.ticks = element_line(color = "black", lineend = "round")  # Add ticks/dots at the axis line
+  )+
+  theme(plot.background = element_rect(fill = "#e2f3f9"))
+
+# Combine all forecasts into a list for different horizons
+combined_forecasts_ddwa <- list(`1` = combined_forecasts_ddwa_h1, 
+                                `3` = combined_forecasts_ddwa_h3, 
+                                `6` = combined_forecasts_ddwa_h6, 
+                                `12` = combined_forecasts_ddwa_h12)
+
+# Save the plot as an image file
+ggsave("ddwa12.png", plot = ddwa12, width = 10, height = 6, dpi = 300)
+getwd()
+```
+
+# All weights of combined model
+
+```{r}
+# Required library
+library(xtable)
+
+# Combine weights into a data frame and round to 4 decimal places
+weights_df <- data.frame(
+  Horizon = c(1, 3, 6, 12),
+  Dynamic = round(c(optimal_weights_h1[1], optimal_weights_h3[1], optimal_weights_h6[1], optimal_weights_h12[1]), 3),
+  NNAR = round(c(optimal_weights_h1[2], optimal_weights_h3[2], optimal_weights_h6[2], optimal_weights_h12[2]), 3),
+  Random_Forest = round(c(optimal_weights_h1[3], optimal_weights_h3[3], optimal_weights_h6[3], optimal_weights_h12[3]), 3)
+)
+
+# Print the data frame
+print(weights_df)
+
+# Convert the data frame to a LaTeX table
+latex_table <- xtable(weights_df, caption = "Optimal Weights for Different Horizons", label = "tab:optimal_weights")
+
+# Print the LaTeX code for the table
+print(latex_table, include.rownames = FALSE, booktabs = TRUE)
+
+```
+
+# All horizon Forecast
+```{r}
+# Combine RMSE values for all models and horizons
+combined_rmse <- data.frame(
+  Model = c("ARIMA", "Dyn", "NNAR", "NNARX", "RF", "XGBoost", "Combined"),
+  H1_RMSE = round(c(accuracy_arima_h1[2], accuracy_dyn_h1[2], accuracy_nnar_h1[2],
+                    accuracy_nnarx_h1[2], accuracy_rf_h1[2], accuracy_xgb_h1[2], accuracy_combined_forecasts_ddwa_h1[2]), 3),
+  H3_RMSE = round(c(accuracy_arima_h3[2], accuracy_dyn_h3[2], accuracy_nnar_h3[2],
+                    accuracy_nnarx_h3[2], accuracy_rf_h3[2], accuracy_xgb_h3[2], accuracy_combined_forecasts_ddwa_h3[2]), 3),
+  H6_RMSE = round(c(accuracy_arima_h6[2], accuracy_dyn_h6[2], accuracy_nnar_h6[2], accuracy_nnarx_h6[2],
+                    accuracy_rf_h6[2], accuracy_xgb_h6[2], accuracy_combined_forecasts_ddwa_h6[2]), 3),
+  H12_RMSE = round(c(accuracy_arima_h12[2], accuracy_dyn_h12[2], accuracy_nnar_h12[2],
+                     accuracy_nnarx_h12[2], accuracy_rf_h12[2], accuracy_xgb_h12[2], accuracy_combined_forecasts_ddwa_h12[2]), 3)
+)
+
+
+
+# Generate LaTeX code to print the combined RMSE values
+latex_code <- paste(
+  "\\begin{table}[ht]",
+  "\\centering",
+  "\\begin{tabular}{cccccc}",
+  "\\toprule",
+  "Model & H=1 & H=3 & H=6 & H=12 \\\\",
+  "\\midrule",
+  paste(apply(combined_rmse, 1, function(x) paste(x, collapse = " & ")), collapse = "\\\\"),
+  "\\bottomrule",
+  "\\end{tabular}",
+  "\\caption{Combined RMSE Values}",
+  "\\label{tab:combined_rmse}",
+  "\\end{table}",
+  sep = "\n"
+)
+
+# Print the LaTeX code
+print(latex_code)
+
+```
+
+# DYB + ARima + RF
+
+# h=1
+```{r}
+# Function to compute DDWMA forecast for a given set of weights
+compute_ddwma_forecast <- function(weights, forecasts) {
+  combined_forecast <- numeric(length(forecasts[[1]]))
+  for (i in seq_along(forecasts)) {
+    combined_forecast <- combined_forecast + weights[i] * forecasts[[i]]
+  }
+  return(combined_forecast)
+}
+
+# Function to compute one-step ahead forecast error sum of squares (FESS)
+compute_fess <- function(actual_values, combined_forecast) {
+  fess <- sum((actual_values - combined_forecast) ^ 2)
+  return(fess)
+}
+
+# Function to determine optimal weights based on Algorithm 1
+determine_optimal_weights <- function(forecasts, actual_values, L, R) {
+  min_fess <- Inf
+  optimal_weights <- NULL
+  
+  for (r in 1:R) {
+    weights <- runif(length(forecasts))
+    weights <- weights / sum(weights)  # Standardize weights to sum up to 1
+    
+    ddwma_forecast <- compute_ddwma_forecast(weights, forecasts)
+    fess <- compute_fess(actual_values, ddwma_forecast)
+    
+    if (fess < min_fess) {
+      min_fess <- fess
+      optimal_weights <- weights
+    }
+  }
+  
+  return(optimal_weights)
+}
+
+# Example usage:
+# Set the number of lagged demand
+L <- 2
+
+# Set the number of iterations to find optimal weights
+R <- 40000
+
+# Combine all forecasts into a list
+forecasts <- list(dyn_forecasts$`1`, arima_forecasts$`1`, rf_forecasts$`1`)
+
+# Provided actual demand values
+actual_values <- true_values$`1`
+
+# Determine optimal weights
+optimal_weights <- determine_optimal_weights(forecasts, actual_values, L, R)
+
+# Print the optimal weights
+print("Optimal Weights:")
+print(round(optimal_weights, 6))
+
+# Compute the combined forecast using optimal weights
+combined_forecast <- compute_ddwma_forecast(optimal_weights, forecasts)
+
+# Print combined forecast
+print("Combined Forecast:")
+print(combined_forecast)
+
+```
+
+# h=3
+
+```{r}
+library(forecast)
+library(ggplot2)
+
+
+
+# HORIZON 3
+# Combine all forecasts into a list
+forecasts <- list(dyn_forecasts$`3`, arima_forecasts$`3`, rf_forecasts$`3`)
+
+# Provided actual demand values for horizon 3
+actual_values <- true_values$`3`
+
+# Determine optimal weights
+optimal_weights <- determine_optimal_weights(forecasts, actual_values, L, R)
+
+# Print the optimal weights
+print("Optimal Weights:")
+print(round(optimal_weights, 6))
+
+# Compute the combined forecast using optimal weights
+combined_forecasts_ddwa_h3 <- compute_ddwma_forecast(optimal_weights, forecasts)
+
+# Compute FESS
+fess <- compute_fess(actual_values, combined_forecasts_ddwa_h3)
+
+# Print FESS
+print("FESS:")
+print(fess)
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_forecasts_ddwa_h3 <- accuracy(combined_forecasts_ddwa_h3, true_values$`3`)
+
+# Compute accuracy of individual models for horizon 3
+accuracy_dyn_h3 <- accuracy(dyn_forecasts$`3`, true_values$`3`)
+accuracy_arima_h3 <- accuracy(arima_forecasts$`3`, true_values$`3`)
+accuracy_rf_h3 <- accuracy(rf_forecasts$`3`, true_values$`3`)
+
+# Create a data frame with accuracy metrics
+accuracy_table <- data.frame(
+  Model = c("Dyn", "ARIMA", "RF", "Combined"),
+  RMSE = c(accuracy_dyn_h3[2], accuracy_arima_h3[2], accuracy_rf_h3[2], accuracy_combined_forecasts_ddwa_h3[2]),
+  MAE = c(accuracy_dyn_h3[3], accuracy_arima_h3[3], accuracy_rf_h3[3], accuracy_combined_forecasts_ddwa_h3[3]),
+  MAPE = c(accuracy_dyn_h3[5], accuracy_arima_h3[5], accuracy_rf_h3[5], accuracy_combined_forecasts_ddwa_h3[5])
+)
+
+# Print the accuracy table
+print(accuracy_table)
+
+# Create a data frame with actual values and combined forecasts for h=3
+data_h3 <- data.frame(Actual = true_values$`3`, Dyn_Forecast = dyn_forecasts$`3`, ARIMA_Forecast = arima_forecasts$`3`, RF_Forecast = rf_forecasts$`3`, Combined_Forecast = combined_forecasts_ddwa_h3)
+
+# Plot the actual values and combined forecasts for h=3
+ggplot(data_h3, aes(x = seq_along(Actual))) +
+  geom_line(aes(y = Actual, color = "Actual"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = Combined_Forecast, color = "Combined"), linetype = "solid", size = 1.2) +
+  geom_line(aes(y = Dyn_Forecast, color = "Dyn"), linetype = "dashed", size = 0.7) +
+  geom_line(aes(y = ARIMA_Forecast, color = "ARIMA"), linetype = "dashed", size = 0.7) +
+  geom_line(aes(y = RF_Forecast, color = "RF"), linetype = "dashed", size = 0.7) +
+  labs(x = "Time", y = "Value", title = "Combined Model vs Actual Values (h=3)") +
+  scale_x_continuous(breaks = seq(1, length(true_values$`3`), by = 5)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_color_manual(values = c("black", "red", "green", "blue","purple"),
+                     name = "Model",
+                     breaks = c("Actual", "Combined", "Dyn", "ARIMA", "RF"),
+                     labels = c("Actual", "Combined", "Dyn", "ARIMA", "RF")) +
+  theme_minimal() +
+  theme(legend.position = "right")+
+  theme(plot.background = element_rect(fill = "#e7f3f4"))
+
+```
+
+```{r}
+library(forecast)
+
+# Linear regression model LSE1 for horizon 12: With intercept
+model_LSE1_h12 <- lm(true_values$`12` ~ dyn_forecasts$`12` + rf_forecasts$`12`)
+
+# Get coefficients
+coefficients_LSE1_h12 <- coef(model_LSE1_h12)
+
+# Extract weights
+w0_LSE1_h12 <- coefficients_LSE1_h12[1]
+w1_LSE1_h12 <- coefficients_LSE1_h12[2]
+w2_LSE1_h12 <- coefficients_LSE1_h12[3]
+
+# Combine forecasts using estimated weights
+combined_dr_forecasts_h12 <- w0_LSE1_h12 + w1_LSE1_h12 * dyn_forecasts$`12` + w2_LSE1_h12 * rf_forecasts$`12`
+
+# Evaluate accuracy of combined forecast
+accuracy_combined_h12 <- accuracy(combined_dr_forecasts_h12, true_values$`12`)
+
+# Print the accuracy of combined forecast
+print("Accuracy of Combined Forecast (dyn + rf):")
+print(accuracy_combined_h12)
+
+# Compute accuracy of dynamic forecasts for horizon 12
+accuracy_dyn_h12 <- accuracy(dyn_forecasts$`12`, true_values$`12`)
+print("Accuracy of Dyn Forecast:")
+print(accuracy_dyn_h12)
+
+# Compute accuracy of RF forecasts for horizon 12
+accuracy_rf_h12 <- accuracy(rf_forecasts$`12`, true_values$`12`)
+print("Accuracy of RF Forecast:")
+print(accuracy_rf_h12)
+
+# Optionally, you can also compute and print the accuracy of XGBoost forecasts for horizon 12
+# Even though we are not using XGBoost in the combined forecast
+accuracy_xgb_h12 <- accuracy(xgb_forecasts$`12`, true_values$`12`)
+print("Accuracy of XGBoost Forecast:")
+print(accuracy_xgb_h12)
+
+```
+
+
+
+
+
+
+# Mean and Variance  of combine DDWA
+
+```{r}
+# Function to compute the variance of a vector
+compute_variance <- function(x) {
+  return(var(x))
+}
+
+# Compute the variance for each horizon
+variance_combined_forecasts <- sapply(combined_forecasts_ddwa, compute_variance)
+
+# Print the variance of the combined forecasts
+print(variance_combined_forecasts)
+
+# Function to compute the mean of a vector
+compute_mean <- function(x) {
+  return(mean(x))
+}
+
+# Compute the mean for each horizon
+mean_combined_forecasts <- sapply(combined_forecasts_ddwa, compute_mean)
+
+# Print the mean of the combined forecasts
+print(mean_combined_forecasts)
+
+```
+
+# Wald Test of dnx
+
+```{r}
+# Fit linear regression model for combined forecasts
+model_combined <- lm(true_values$`1` ~ combined_dnx_forecasts_h1)
+
+# Define the null hypothesis: alpha = 0 and beta = 1
+hypothesis_combined <- c("combined_dnx_forecasts_h1 = 1")
+
+# Perform Wald test
+wald_test_combined <- linearHypothesis(model_combined, hypothesis_combined)
+
+# Print Wald test results
+print(wald_test_combined)
+mean(combined_dnx_forecasts_h1)
+var(combined_dnx_forecasts_h1)
+############
+# Fit linear regression model for combined forecasts
+model_combined <- lm(true_values$`3` ~ combined_dnx_forecasts_h3)
+
+# Define the null hypothesis: alpha = 0 and beta = 1
+hypothesis_combined <- c("combined_dnx_forecasts_h3 = 1")
+
+# Perform Wald test
+wald_test_combined <- linearHypothesis(model_combined, hypothesis_combined)
+
+# Print Wald test results
+print(wald_test_combined)
+mean(combined_dnx_forecasts_h3)
+var(combined_dnx_forecasts_h3)
+
+####
+# Fit linear regression model
+model <- lm(true_values$`6` ~ combined_dnx_forecasts_h6)
+
+# Define the null hypothesis: coefficient of combined forecast = 1
+hypothesis <- c("combined_dnx_forecasts_h6 = 1")
+
+# Perform Wald test
+wald_test <- linearHypothesis(model, hypothesis)
+
+# Print Wald test results
+print(wald_test)
+mean(combined_dnx_forecasts_h6)
+var(combined_dnx_forecasts_h6)
+
+###########
+# Fit linear regression model for combined forecasts
+model_combined <- lm(true_values$`12` ~ combined_dnx_forecasts_h12)
+
+# Define the null hypothesis: alpha = 0 and beta = 1
+hypothesis_combined <- c("combined_dnx_forecasts_h12 = 1")
+
+# Perform Wald test
+wald_test_combined <- linearHypothesis(model_combined, hypothesis_combined)
+
+# Print Wald test results
+print(wald_test_combined)
+
+# Calculate mean and variance of the combined forecast variable
+mean_combined <- mean(combined_dnx_forecasts_h12)
+variance_combined <- var(combined_dnx_forecasts_h12)
+
+# Print mean and variance
+print(paste("Mean of combined forecast:", mean_combined))
+print(paste("Variance of combined forecast:", variance_combined))
+
+```
+
+
+
+
+
+# Plots
+
+Combination(DYn, NNAR, XGBoost)
+
+## h=1
+
+```{r}
+library(ggplot2)
+
+# Create a data frame with actual values and combined forecasts for h=1
+data_h1 <- data.frame(Actual = true_values$`1`, Combined_Forecast = combined_dnx_forecasts_h1)
+
+# Plot the actual values and combined forecasts for h=1
+ggplot(data_h1, aes(x = seq_along(Actual))) +
+  geom_line(aes(y = Actual), color = "blue", linetype = "solid") +
+  geom_line(aes(y = Combined_Forecast), color = "red", linetype = "dashed") +
+  labs(x = "Time", y = "Value", title = "Combined Model vs Actual Values (h=1)") +
+  scale_x_continuous(breaks = seq(1, length(true_values$`1`), by = 5)) +
+  scale_y_continuous(expand = c(0, 0))
+
+```
+
+## h=3
+
+```{r}
+library(ggplot2)
+
+# Create a data frame with actual values and combined forecasts for h=3
+data_h3 <- data.frame(Actual = true_values$`3`, Combined_Forecast = combined_dnx_forecasts_h3)
+
+# Plot the actual values and combined forecasts for h=3
+ggplot(data_h3, aes(x = seq_along(Actual))) +
+  geom_line(aes(y = Actual), color = "blue", linetype = "solid") +
+  geom_line(aes(y = Combined_Forecast), color = "red", linetype = "dashed") +
+  labs(x = "Time", y = "Value", title = "Combined Model vs Actual Values (h=3)") +
+  scale_x_continuous(breaks = seq(1, length(true_values$`3`), by = 5)) +
+  scale_y_continuous(expand = c(0, 0))
+
+```
+
+## h=6
+
+```{r}
+# Create a data frame with actual values and combined forecasts for h=6
+data_h6 <- data.frame(Actual = true_values$`6`, Combined_Forecast = combined_dnx_forecasts_h6)
+
+# Plot the actual values and combined forecasts for h=6
+ggplot(data_h6, aes(x = seq_along(Actual))) +
+  geom_line(aes(y = Actual), color = "blue", linetype = "solid") +
+  geom_line(aes(y = Combined_Forecast), color = "red", linetype = "dashed") +
+  labs(x = "Time", y = "Value", title = "Combined Model vs Actual Values (h=6)") +
+  scale_x_continuous(breaks = seq(1, length(true_values$`6`), by = 5)) +
+  scale_y_continuous(expand = c(0, 0))
+
+```
+
+## h=12
+
+```{r}
+library(ggplot2)
+
+# Create a data frame with actual values and combined forecasts
+data <- data.frame(Actual = true_values$`12`, Combined_Forecast = combined_dnx_forecasts_h12)
+
+# Plot the actual values and combined forecasts
+ggplot(data, aes(x = seq_along(Actual))) +
+  geom_line(aes(y = Actual), color = "blue", linetype = "solid") +
+  geom_line(aes(y = Combined_Forecast), color = "red", linetype = "dashed") +
+  labs(x = "Time", y = "Value", title = "Combined Model vs Actual Values") +
+  scale_x_continuous(breaks = seq(1, length(true_values$`12`), by = 5)) +
+  scale_y_continuous(expand = c(0, 0))
+
+
+```
+## All model Forecast
+
+## h=1
+
+```{r}
+# Combine all forecasts for h=1
+combined_forecasts_h1 <- cbind(arima_forecasts$`1`, dyn_forecasts$`1`, nnar_forecasts$`1`, nnarx_forecasts$`1`, rf_forecasts$`1`, xgb_forecasts$`1`, combined_dnx_forecasts_h1)
+colnames(combined_forecasts_h1) <- c("ARIMA", "Dyn", "NNAR", "NNARx", "RF", "XGB", "Combined_DNX")
+
+# Create a data frame for plotting
+data_h1 <- data.frame(Time = seq_along(true_values$`1`), Actual = true_values$`1`, combined_forecasts_h1)
+
+# Convert the data to long format
+data_h1_long <- tidyr::gather(data_h1, Model, Forecast, -Time, -Actual)
+
+# Plot the forecasts
+ggplot(data_h1_long, aes(x = Time, y = Forecast, color = Model)) +
+  geom_line() +
+  geom_line(data = data_h1, aes(x = Time, y = Actual), color = "black", linetype = "solid") +
+  labs(x = "Time", y = "Value", title = "Forecast Comparison for h=1") +
+  theme_minimal()
+
+```
+## h=3
+```{r}
+# Combine all forecasts for h=3
+combined_forecasts_h3 <- cbind(arima_forecasts$`3`, dyn_forecasts$`3`, nnar_forecasts$`3`, nnarx_forecasts$`3`, rf_forecasts$`3`, xgb_forecasts$`3`, combined_dnx_forecasts_h3)
+colnames(combined_forecasts_h3) <- c("ARIMA", "Dyn", "NNAR", "NNARx", "RF", "XGB", "Combined_DNX")
+
+# Create a data frame for plotting
+data_h3 <- data.frame(Time = seq_along(true_values$`3`), Actual = true_values$`3`, combined_forecasts_h3)
+
+# Convert the data to long format
+data_h3_long <- tidyr::gather(data_h3, Model, Forecast, -Time, -Actual)
+
+# Plot the forecasts
+ggplot(data_h3_long, aes(x = Time, y = Forecast, color = Model)) +
+  geom_line() +
+  geom_line(data = data_h3, aes(x = Time, y = Actual), color = "black", linetype = "solid") +
+  labs(x = "Time", y = "Value", title = "Forecast Comparison for h=3") +
+  theme_minimal()
+
+```
+
+## h=6
+```{r}
+# Combine all forecasts for h=6
+combined_forecasts_h6 <- cbind(arima_forecasts$`6`, dyn_forecasts$`6`, nnar_forecasts$`6`, nnarx_forecasts$`6`, rf_forecasts$`6`, xgb_forecasts$`6`, combined_dnx_forecasts_h6)
+colnames(combined_forecasts_h6) <- c("ARIMA", "Dyn", "NNAR", "NNARx", "RF", "XGB", "Combined_DNX")
+
+# Create a data frame for plotting
+data_h6 <- data.frame(Time = seq_along(true_values$`6`), Actual = true_values$`6`, combined_forecasts_h6)
+
+# Convert the data to long format
+data_h6_long <- tidyr::gather(data_h6, Model, Forecast, -Time, -Actual)
+
+# Plot the forecasts
+ggplot(data_h6_long, aes(x = Time, y = Forecast, color = Model)) +
+  geom_line() +
+  geom_line(data = data_h6, aes(x = Time, y = Actual), color = "black", linetype = "solid") +
+  labs(x = "Time", y = "Value", title = "Forecast Comparison for h=6") +
+  theme_minimal()
+
+```
+
+## h=12
+```{r}
+# Combine all forecasts for h=12
+combined_forecasts_h12 <- cbind(arima_forecasts$`12`, dyn_forecasts$`12`, nnar_forecasts$`12`, nnarx_forecasts$`12`, rf_forecasts$`12`, xgb_forecasts$`12`, combined_dnx_forecasts_h12)
+colnames(combined_forecasts_h12) <- c("ARIMA", "Dyn", "NNAR", "NNARx", "RF", "XGB", "Combined_DNX")
+
+# Create a data frame for plotting
+data_h12 <- data.frame(Time = seq_along(true_values$`12`), Actual = true_values$`12`, combined_forecasts_h12)
+
+# Convert the data to long format
+data_h12_long <- tidyr::gather(data_h12, Model, Forecast, -Time, -Actual)
+
+# Plot the forecasts
+ggplot(data_h12_long, aes(x = Time, y = Forecast, color = Model)) +
+  geom_line() +
+  geom_line(data = data_h12, aes(x = Time, y = Actual), color = "black", linetype = "solid") +
+  labs(x = "Time", y = "Value", title = "Forecast Comparison for h=12") +
+  theme_minimal()
+
+```
+
+# Forecast Comb Package
+
+```{r }
+library(ForecastComb)
+
+# Combine forecasts into one dataframe
+preds <- data.frame(dyn_forecasts$`1` ,arima_forecasts$`1`, nnar_forecasts$`1` , rf_forecasts$`1` , nnarx_forecasts$`1` , xgb_forecasts$`1`)
+
+# Rename columns for clarity
+colnames(preds) <- c("dyn_forecast","arima_forecasts","nnar_forecasts","forecast_values","nnarx_forecasts","forecast_values_xgb")
+                                  
+# Convert preds data frame to matrix
+preds <- as.matrix(preds)
+
+test_data <- inflation[541:620,]
+actual_cpi <- test_data$cpi
+obs <- matrix(actual_cpi)
+
+data(electricity)
+?electricity
+train_o<-obs[1:65]
+train_p<-preds[1:65,]
+test_o<-obs[66:80]
+test_p<-preds[66:80,]
+
+data<-foreccomb(train_o, train_p, test_o, test_p)
+?foreccomb
+comb_InvW(data)#can try
+comb_LAD(data)#Based on MAE
+comb_OLS(data)
+comb_CLS(data)#good
+comb_CSR(data)
+comb_SA(data)# best (.35)
+comb_EIG1(data)
+comb_EIG2(data)
+auto_combine(data,criterion="MAE")
+
+accuracy(arima_forecasts$`1`[66:80],test_o)
+accuracy(dyn_forecasts$`1`[66:80],test_o)
+accuracy(nnar_forecasts$`1`[66:80],test_o)
+accuracy(nnarx_forecasts$`1`[66:80],test_o)
+accuracy(rf_forecasts$`1`[66:80],test_o)
+accuracy(xgb_forecasts$`1`[66:80],test_o)
+```
+
